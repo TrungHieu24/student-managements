@@ -1,3 +1,5 @@
+import userConfig from '../../userconfig.json';
+
 export interface NavItem {
   id: number;
   path: string;
@@ -6,64 +8,33 @@ export interface NavItem {
   active: boolean;
 }
 
-const navItems: NavItem[] = [
-  {
-    id: 1,
-    path: '/',
-    title: 'dashboard',
-    icon: 'mingcute:home-1-fill',
-    active: true,
-  },
-  {
-    id: 2,
-    path: '/listclass',
-    title: 'listClass',
-    icon: 'mdi:book-open-variant',
-    active: true,
-  },
-  {
-    id: 3,
-    path: '/class',
-    title: 'class',
-    icon: 'mdi:google-classroom',
-    active: true,
-  },
-  {
-    id: 4,
-    path: '/teacher',
-    title: 'teacher',
-    icon: 'material-symbols:person-outline',
-    active: true,
-  },
-  {
-    id: 5,
-    path: '/subject',
-    title: 'subject',
-    icon: 'mdi:book-education-outline',
-    active: true,
-  },
+interface UserConfig {
+  admin: NavItem[];
+  teacher: NavItem[];
+  user: NavItem[];
+}
 
-  {
-    id: 6,
-    path: '/profile',
-    title: 'profile',
-    icon: 'clarity:user-line',
-    active: true,
-  },
-  {
-    id: 7,
-    path: '/setting',
-    title: 'settings',
-    icon: 'mingcute:settings-3-line',
-    active: true,
-  },
-  {
-    id: 8,
-    path: '/authentication/login',
-    title: 'login',
-    icon: 'tabler:login',
-    active: true,
-  },
-];
+const config = userConfig as UserConfig;
 
-export default navItems;
+export function getNavItemsByRole(role: 'admin' | 'teacher' | 'user'): NavItem[] {
+  // Kiểm tra role có nằm trong danh sách hợp lệ không
+  if (!['admin', 'teacher', 'user'].includes(role)) {
+    console.warn(`Invalid role: ${role}, defaulting to 'user'`);
+    return config.user || [];
+  }
+  
+  // Lấy danh sách menu theo role
+  const items = config[role];
+  if (!Array.isArray(items)) {
+    console.warn(`No items found for role: ${role}, defaulting to empty array`);
+    return [];
+  }
+  
+  console.log(`Getting nav items for role: ${role}, found ${items.length} items`);
+  return items;
+}
+
+// Export for convenience
+export const adminNavItems = getNavItemsByRole('admin');
+export const teacherNavItems = getNavItemsByRole('teacher');
+export const userNavItems = getNavItemsByRole('user');

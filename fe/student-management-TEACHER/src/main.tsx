@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import theme from 'theme/theme.ts';
+import theme from '../../student-management-TEACHER/src/theme/theme.ts';
 import { RouterProvider } from 'react-router-dom';
 import { CssBaseline, ThemeProvider } from '@mui/material';
-import BreakpointsProvider from 'providers/BreakpointsProvider.tsx';
-import router from 'routes/router';
+import BreakpointsProvider from '../../student-management-TEACHER/src/providers/BreakpointsProvider.tsx';
+import router from '../../student-management-TEACHER/src/routes/router.tsx';
+
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

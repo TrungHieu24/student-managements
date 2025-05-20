@@ -6,25 +6,25 @@ import {
   createBrowserRouter,
 } from 'react-router-dom';
 
-import PageLoader from 'components/loading/PageLoader';
-import Splash from 'components/loading/Splash';
+import PageLoader from '../components/loading/PageLoader';
+import Splash from '../components/loading/Splash';
 import { rootPaths } from './paths';
 import paths from './paths';
-import RequireAuth from 'components/auth/RequireAuth'; 
+import RequireAuth from '../components/auth/RequireAuth'; 
 
-const App = lazy<() => ReactElement>(() => import('App'));
+const App = lazy<() => ReactElement>(() => import('../App'));
 const MainLayout = lazy<({ children }: PropsWithChildren) => ReactElement>(
-  () => import('layouts/main-layout')
+  () => import('../layouts/main-layout')
 );
 const AuthLayout = lazy<({ children }: PropsWithChildren) => ReactElement>(
-  () => import('layouts/auth-layout')
+  () => import('../layouts/auth-layout')
 );
-const Dashboard = lazy<() => ReactElement>(() => import('pages/dashboard/Dashboard'));
-const Login = lazy<() => ReactElement>(() => import('pages/authentication/Login'));
-const ErrorPage = lazy<() => ReactElement>(() => import('pages/error/ErrorPage'));
-const FirstTimePasswordChange = lazy(() => import('pages/authentication/FirstTimePasswordChange'));
-const Homeroom = lazy<() => ReactElement>(() => import('pages/homeroom/Homeroom'));
-const Teaching = lazy<() => ReactElement>(() => import('pages/teaching-assignment/Teaching'));
+const Dashboard = lazy<() => ReactElement>(() => import('../pages/dashboard/Dashboard'));
+const Login = lazy<() => ReactElement>(() => import('../pages/authentication/Login'));
+const ErrorPage = lazy<() => ReactElement>(() => import('../pages/error/ErrorPage'));
+const FirstTimePasswordChange = lazy(() => import('../pages/authentication/FirstTimePasswordChange'));
+const Homeroom = lazy<() => ReactElement>(() => import('../pages/homeroom/Homeroom'));
+const Teaching = lazy<() => ReactElement>(() => import('../pages/teaching-assignment/Teaching'));
 
 
 export const FIRST_TIME_PASSWORD_CHANGE_PATH = 'first-time-password-change';

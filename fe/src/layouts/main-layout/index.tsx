@@ -1,4 +1,4 @@
-import { useState, ReactElement, PropsWithChildren, cloneElement, isValidElement } from 'react';
+import { useState, ReactElement, PropsWithChildren } from 'react';
 import { Box, Drawer, Toolbar } from '@mui/material';
 import Topbar from './Topbar/Topbar';
 import Sidebar from './Sidebar/Sidebar';
@@ -10,27 +10,19 @@ export const drawerCloseWidth = 110;
 const MainLayout = ({ children }: PropsWithChildren): ReactElement => {
   const [open, setOpen] = useState<boolean>(false);
   const handleDrawerToggle = () => setOpen(!open);
-  const [searchKeyword, setSearchKeyword] = useState('');
-
-  const childrenWithProps = isValidElement(children)
-    ? cloneElement(children, { searchKeyword }) 
-    : children;
 
   return (
     <>
       <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-        <Topbar
-          open={open}
-          handleDrawerToggle={handleDrawerToggle}
-          onSearchChange={(keyword) => setSearchKeyword(keyword)}
-        />
-
+        <Topbar open={open} handleDrawerToggle={handleDrawerToggle} />
         {/* Mobile Drawer */}
         <Drawer
           variant="temporary"
           open={open}
           onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
+          ModalProps={{
+            keepMounted: true,
+          }}
           sx={{
             display: { xs: 'block', sm: 'none' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerOpenWidth },
@@ -38,7 +30,6 @@ const MainLayout = ({ children }: PropsWithChildren): ReactElement => {
         >
           <Sidebar open={open} />
         </Drawer>
-
         {/* Desktop Drawer */}
         <Drawer
           variant="permanent"
@@ -54,7 +45,6 @@ const MainLayout = ({ children }: PropsWithChildren): ReactElement => {
         >
           <Sidebar open={open} />
         </Drawer>
-
         <Box
           component="main"
           overflow="auto"
@@ -67,11 +57,14 @@ const MainLayout = ({ children }: PropsWithChildren): ReactElement => {
             pl: { xs: 3, sm: 5.25 },
           }}
         >
-          <Toolbar sx={{ height: 96 }} />
-          {childrenWithProps}
+          <Toolbar
+            sx={{
+              height: 96,
+            }}
+          />
+          {children}
         </Box>
       </Box>
-
       <Footer open={open} />
     </>
   );

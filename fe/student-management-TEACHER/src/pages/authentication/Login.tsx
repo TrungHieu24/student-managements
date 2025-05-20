@@ -16,11 +16,11 @@ import {
   Snackbar,
   CircularProgress
 } from '@mui/material';
-import IconifyIcon from 'components/base/IconifyIcon';
+import IconifyIcon from '../../components/base/IconifyIcon';
 import { useState, ReactElement, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { rootPaths } from 'routes/paths';
-import Image from 'components/base/Image';
+import { rootPaths } from '../../routes/paths';
+import Image from '../../components/base/Image';
 import logoWithText from '/Logo-with-text.png';
 import axios from 'axios';
 

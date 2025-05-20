@@ -28,6 +28,8 @@ const Subject = lazy(() => import('../pages/subject/Subject'));
 const Teacher = lazy(() => import('../pages/teacher/Teacher'));
 const Class = lazy(() => import('../pages/class/Class'));
 const ListClass = lazy(() => import('../pages/listclass/ListClass'));
+const Homeroom = lazy<() => ReactElement>(() => import('../pages/homeroom/Homeroom'));
+const Teaching = lazy<() => ReactElement>(() => import('../pages/teaching-assignment/Teaching'));
 
 
 
@@ -58,6 +60,8 @@ const routes: RouteObject[] = [
           { path: 'teacher', element: <Teacher /> },
           { path: 'class', element: <Class /> },
           { path: 'listclass', element: <ListClass /> },
+          { path: 'homeroom', element: <Homeroom /> },
+          { path: 'teaching', element: <Teaching /> },
         ],
       },
       {

@@ -1,23 +1,37 @@
 import { ReactElement, useEffect, useState } from 'react';
 import { Link as MuiLink, List, Toolbar } from '@mui/material';
-import navItemsData from 'data/nav-items';
+import { getNavItemsByRole, NavItem as NavItemType } from '../../../data/nav-items';
 import SimpleBar from 'simplebar-react';
 import NavItem from './NavItem';
 import { drawerCloseWidth, drawerOpenWidth } from '..';
-import Image from 'components/base/Image';
+import Image from '../../../components/base/Image';
 import logoWithText from '/Logo-with-text.png';
 import logo from '/LOGO.png';
-import { rootPaths } from 'routes/paths';
+import { rootPaths } from '../../../routes/paths';
 import { useNavigate } from 'react-router-dom';
-import { isTokenValid, clearAuth } from 'utils/auth';
+import { useAuth } from '../../../components/auth/useAuth'; 
 
 const Sidebar = ({ open }: { open: boolean }): ReactElement => {
   const navigate = useNavigate();
-  const [navItems, setNavItems] = useState(navItemsData);
+  const { isAuthenticated, role, logout } = useAuth(); 
+
+  const [navItems, setNavItems] = useState<NavItemType[]>([]);
 
   useEffect(() => {
-    if (isTokenValid()) {
-      const updatedNavItems = navItemsData.map((item) =>
+    let navRole = 'user';
+    if (role === 'ADMIN') {
+      navRole = 'admin';
+    } else if (role === 'TEACHER') {
+      navRole = 'teacher';
+    }
+    
+    console.log('Sidebar - Auth status:', isAuthenticated, 'Role:', role, 'Nav role:', navRole);
+    
+    const rawItems = getNavItemsByRole(navRole as 'admin' | 'teacher' | 'user');
+    const safeItems: NavItemType[] = Array.isArray(rawItems) ? rawItems : [];
+
+    if (isAuthenticated) {
+      const updatedNavItems = safeItems.map((item): NavItemType =>
         item.title === 'login'
           ? {
               ...item,
@@ -29,13 +43,25 @@ const Sidebar = ({ open }: { open: boolean }): ReactElement => {
       );
       setNavItems(updatedNavItems);
     } else {
-      setNavItems(navItemsData);
+      const filteredItems = safeItems
+        .filter(item => item.title !== 'logout')
+        .map((item): NavItemType =>
+          item.title === 'login'
+            ? {
+                ...item,
+                title: 'login',
+                icon: 'tabler:login',
+                path: '/authentication/login',
+              }
+            : item
+        );
+      setNavItems(filteredItems);
     }
-  }, []);
+  }, [role, isAuthenticated]); 
 
   const handleItemClick = (itemTitle: string) => {
     if (itemTitle === 'logout') {
-      clearAuth();
+      logout();
       navigate('/authentication/login');
     }
   };
@@ -77,15 +103,16 @@ const Sidebar = ({ open }: { open: boolean }): ReactElement => {
             justifyContent: 'space-between',
           }}
         >
-          {navItems.map((navItem) => (
-            <div
-              key={navItem.id}
-              onClick={() => handleItemClick(navItem.title)}
-              style={{ cursor: 'pointer' }}
-            >
-              <NavItem navItem={navItem} open={open} />
-            </div>
-          ))}
+          {Array.isArray(navItems) &&
+            navItems.map((navItem) => (
+              <div
+                key={navItem.id}
+                onClick={() => handleItemClick(navItem.title)}
+                style={{ cursor: 'pointer' }}
+              >
+                <NavItem navItem={navItem} open={open} />
+              </div>
+            ))}
         </List>
       </SimpleBar>
     </>
