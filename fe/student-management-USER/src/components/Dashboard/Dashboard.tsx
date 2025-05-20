@@ -23,7 +23,7 @@ interface User {
   created_at: string | null;
   updated_at: string | null;
   avatar?: string | null;
-  role: 'USER' | 'ADMIN' | 'TEACHER';
+  role: 'USER';
 }
 
 interface Student extends User {

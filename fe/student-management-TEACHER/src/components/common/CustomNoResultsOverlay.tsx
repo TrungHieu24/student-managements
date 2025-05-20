@@ -1,7 +1,7 @@
 import { ReactElement } from 'react';
 import { Stack, Typography } from '@mui/material';
-import Image from 'components/base/Image';
-import noResultsSvg from 'assets/images/error/no-results.svg';
+import Image from '../../components/base/Image';
+import noResultsSvg from '../../assets/images/error/no-results.svg';
 
 const CustomNoResultsOverlay = (): ReactElement => {
   return (

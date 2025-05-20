@@ -1,23 +1,27 @@
 import { ReactElement, useEffect, useState } from 'react';
 import { Link as MuiLink, List, Toolbar } from '@mui/material';
-import navItemsData from 'data/nav-items';
+import { getNavItemsByRole } from '../../../data/nav-items'; // 🆕
 import SimpleBar from 'simplebar-react';
 import NavItem from './NavItem';
 import { drawerCloseWidth, drawerOpenWidth } from '..';
-import Image from 'components/base/Image';
+import Image from '../../../components/base/Image';
 import logoWithText from '/Logo-with-text.png';
 import logo from '/LOGO.png';
-import { rootPaths } from 'routes/paths';
+import { rootPaths } from '../../../routes/paths';
 import { useNavigate } from 'react-router-dom';
-import { isTokenValid, clearAuth } from 'utils/auth';
+import { isTokenValid, clearAuth } from '../../../utils/auth';
 
 const Sidebar = ({ open }: { open: boolean }): ReactElement => {
   const navigate = useNavigate();
-  const [navItems, setNavItems] = useState(navItemsData);
+
+  // 🆕 Lấy role từ localStorage hoặc chỗ bạn lưu thông tin người dùng
+  const role = localStorage.getItem('role') as 'admin' | 'teacher' | 'user' || 'user';
+
+  const [navItems, setNavItems] = useState(() => getNavItemsByRole(role)); // 🆕
 
   useEffect(() => {
     if (isTokenValid()) {
-      const updatedNavItems = navItemsData.map((item) =>
+      const updatedNavItems = getNavItemsByRole(role).map((item) =>
         item.title === 'login'
           ? {
               ...item,
@@ -29,9 +33,9 @@ const Sidebar = ({ open }: { open: boolean }): ReactElement => {
       );
       setNavItems(updatedNavItems);
     } else {
-      setNavItems(navItemsData);
+      setNavItems(getNavItemsByRole(role));
     }
-  }, []);
+  }, [role]);
 
   const handleItemClick = (itemTitle: string) => {
     if (itemTitle === 'logout') {

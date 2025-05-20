@@ -6,7 +6,7 @@ import 'swiper/css/navigation';
 
 import { Box, SxProps } from '@mui/material';
 import { ReactElement, RefObject } from 'react';
-import { useBreakpoints } from 'providers/BreakpointsProvider';
+import { useBreakpoints } from '../../providers/BreakpointsProvider';
 
 const ReactSwiper = ({
   children,

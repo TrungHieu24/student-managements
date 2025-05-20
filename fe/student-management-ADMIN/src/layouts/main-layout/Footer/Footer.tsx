@@ -1,5 +1,5 @@
 import { Stack } from '@mui/material';
-import { useBreakpoints } from 'providers/BreakpointsProvider';
+import { useBreakpoints } from '../../../providers/BreakpointsProvider';
 import { ReactElement } from 'react';
 
 const Footer = ({ open }: { open: boolean }): ReactElement => {

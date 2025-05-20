@@ -5,7 +5,6 @@ import Login from '../components/Auth/Login';
 import FirstTimePasswordChange from '../components/Auth/FirstTimePasswordChange';
 import Dashboard from '../components/Dashboard/Dashboard';
 
-// Component loading để hiển thị trong khi kiểm tra xác thực
 import { Box, CircularProgress, Typography } from '@mui/material';
 
 const LoadingScreen = () => (
@@ -25,22 +24,18 @@ const LoadingScreen = () => (
   </Box>
 );
 
-// Hàm xác thực được tối ưu, không dùng console.log không cần thiết
 const isAuthenticated = () => {
     const token = localStorage.getItem('token');
     return !!token;
 };
 
-// Hàm kiểm tra đổi mật khẩu - ĐÃ SỬA
 const requiresPasswordChange = () => {
     const userString = localStorage.getItem('user');
     const isFirstLoginLS = localStorage.getItem('is_first_login');
     
-    // Log để debug thông tin
     console.log('User string:', userString);
     console.log('is_first_login from localStorage:', isFirstLoginLS);
     
-    // Nếu không có dữ liệu người dùng, không cần đổi mật khẩu
     if (!userString) return false;
     
     try {
@@ -49,8 +44,6 @@ const requiresPasswordChange = () => {
         console.log('User role:', user.role);
         console.log('User is_first_login:', user.is_first_login);
     
-        // Kiểm tra cả hai điều kiện: USER và first login flag
-        // Chỉ role USER mới cần đổi mật khẩu lần đầu
         return isAuthenticated() && 
                user.role === 'USER' && 
                (isFirstLoginLS === 'true' || user.is_first_login === true);
@@ -60,7 +53,6 @@ const requiresPasswordChange = () => {
     }
 };
 
-// Quản lý trạng thái xác thực trong một component bọc
 interface AuthWrapperProps {
   children: React.ReactNode;
 }
@@ -69,13 +61,12 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
   
   useEffect(() => {
-    // Tăng timeout để đảm bảo localStorage đã được cập nhật
     const checkAuth = setTimeout(() => {
       console.log('Auth check complete');
       console.log('Is authenticated:', isAuthenticated());
       console.log('Requires password change:', requiresPasswordChange());
       setIsChecking(false);
-    }, 300); // Tăng timeout lên 300ms
+    }, 300); 
     
     return () => clearTimeout(checkAuth);
   }, []);

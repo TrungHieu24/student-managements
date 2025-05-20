@@ -1,8 +1,8 @@
 import { ReactElement } from 'react';
 import { Link, Stack, Button, Typography } from '@mui/material';
-import Image from 'components/base/Image';
-import errorSvg from 'assets/images/error/error.svg';
-import { rootPaths } from 'routes/paths';
+import Image from '../../components/base/Image';
+import errorSvg from '../../assets/images/error/error.svg';
+import { rootPaths } from '../../routes/paths';
 
 const ErrorPage = (): ReactElement => {
   return (

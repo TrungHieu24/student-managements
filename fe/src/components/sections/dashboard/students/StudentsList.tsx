@@ -20,13 +20,13 @@ import {
   Alert
 } from '@mui/material';
 import DetailStudents from './DetailStudents';
-import { StudentData } from 'data/student-data';
+import { StudentData } from '../../../../data/student-data';
 import axios from 'axios';
 import { Add } from '@mui/icons-material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import Topbar from 'layouts/main-layout/Topbar/Topbar';
+import Topbar from '../../../../layouts/main-layout/Topbar/Topbar';
 import { useTranslation } from 'react-i18next';
 
 // Bảng mapping lớp học và ID

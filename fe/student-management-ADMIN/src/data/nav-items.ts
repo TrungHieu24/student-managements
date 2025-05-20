@@ -57,8 +57,22 @@ const navItems: NavItem[] = [
     icon: 'mingcute:settings-3-line',
     active: true,
   },
+    {
+   id: 8,
+   path: '/homeroom', 
+   title: 'Lớp Chủ Nhiệm',
+   icon: 'mdi:account-tie', 
+   active: true,
+  },
   {
-    id: 8,
+   id: 9,
+   path: '/teaching', 
+   title: 'Phân công giảng dạy',
+   icon: 'mdi:clipboard-text-outline', 
+   active: true,
+  },
+  {
+    id: 10,
     path: '/authentication/login',
     title: 'login',
     icon: 'tabler:login',

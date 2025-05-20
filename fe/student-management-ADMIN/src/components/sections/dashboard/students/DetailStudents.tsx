@@ -24,7 +24,7 @@ import {
   Tooltip,
   CircularProgress
 } from '@mui/material';
-import { StudentData } from 'data/student-data';
+import { StudentData } from '../../../../data/student-data';
 import { Edit, Delete, Assessment, Add as AddIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';

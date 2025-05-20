@@ -6,10 +6,10 @@ import {
   IconButton,
   InputAdornment,
 } from '@mui/material';
-import IconifyIcon from 'components/base/IconifyIcon';
+import IconifyIcon from '../../../components/base/IconifyIcon';
 import { ReactElement } from 'react';
 import { drawerCloseWidth, drawerOpenWidth } from '..';
-import { useBreakpoints } from 'providers/BreakpointsProvider';
+import { useBreakpoints } from '../../../providers/BreakpointsProvider';
 
 const Topbar = ({
   open,
