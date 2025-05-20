@@ -118,7 +118,7 @@ const Login = (): ReactElement => {
 
       // Clear existing auth and save new
       clearAuth(); // Use the utility function
-      saveAuth(token, user.role, is_first_login); // Modified saveAuth to also save is_first_login
+      saveAuth(token, user.role, is_first_login); 
 
       setNotification({
         open: true,
@@ -202,7 +202,7 @@ const Login = (): ReactElement => {
       >
         <Stack component="form" onSubmit={handleSubmit} justifyContent="center" gap={5}>
           <Typography variant="h3" textAlign="center" color="text.secondary">
-            Đăng nhập
+            Login
           </Typography>
           <TextField
             variant="filled"
