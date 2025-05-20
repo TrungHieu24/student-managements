@@ -99,7 +99,7 @@ const Sidebar = ({ open }: { open: boolean }): ReactElement => {
           sx={{
             mt: 24.5,
             py: 2.5,
-            height: 590,
+            height: 500,
             justifyContent: 'space-between',
           }}
         >
