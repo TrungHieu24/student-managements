@@ -19,11 +19,11 @@ import {
 import IconifyIcon from '../../components/base/IconifyIcon';
 import { useState, useEffect, ReactElement, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { rootPaths } from '../../routes/paths'; // Assuming rootPaths is defined here
+import { rootPaths } from '../../routes/paths'; 
 import Image from '../../components/base/Image';
 import logoWithText from '/Logo-with-text.png';
 import axios from 'axios';
-import { saveAuth, isTokenValid, getUserRole, clearAuth } from '../../utils/auth'; // Ensure these utilities exist
+import { saveAuth, isTokenValid, getUserRole, clearAuth } from '../../utils/auth'; 
 
 interface UserData {
   id: number;
@@ -36,7 +36,7 @@ interface UserData {
 interface LoginResponse {
   token: string;
   user: UserData;
-  is_first_login?: boolean; // Make optional as it might be nested in user for some responses
+  is_first_login?: boolean;
   message: string;
 }
 
@@ -53,16 +53,13 @@ const Login = (): ReactElement => {
     severity: 'success',
   });
 
-  // Effect to check authentication status on component mount
   useEffect(() => {
     const tokenValid = isTokenValid();
     const role = getUserRole();
 
-    // If a valid token exists and the user is an ADMIN, redirect to home immediately
     if (tokenValid && role === 'ADMIN') {
       navigate(rootPaths.homeRoot, { replace: true });
-    } else if (tokenValid && role === 'TEACHER') {
-        // If a valid token exists and the user is a TEACHER, check for first login
+    } else if (tokenValid && role === 'TEACHER' || role === 'USER') {
         const isFirstLogin = localStorage.getItem('is_first_login') === 'true';
         if (isFirstLogin) {
             navigate('/first-time-password-change', { replace: true });
@@ -70,7 +67,6 @@ const Login = (): ReactElement => {
             navigate(rootPaths.homeRoot, { replace: true });
         }
     } else if (tokenValid) {
-      // Token valid but not ADMIN or TEACHER (or other role), clear auth to prevent issues
       clearAuth();
     }
   }, [navigate]);
@@ -86,7 +82,7 @@ const Login = (): ReactElement => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    setNotification({ ...notification, open: false }); // Close any previous notifications
+    setNotification({ ...notification, open: false }); 
     setLoading(true);
 
     if (!email || !password) {
@@ -108,7 +104,6 @@ const Login = (): ReactElement => {
 
       const { token, user } = res.data;
 
-      // Determine is_first_login from user object or top-level response
       const is_first_login =
         user.is_first_login !== undefined
           ? user.is_first_login
@@ -116,8 +111,7 @@ const Login = (): ReactElement => {
           ? res.data.is_first_login
           : false;
 
-      // Clear existing auth and save new
-      clearAuth(); // Use the utility function
+      clearAuth(); 
       saveAuth(token, user.role, is_first_login); 
 
       setNotification({
@@ -126,28 +120,25 @@ const Login = (): ReactElement => {
         severity: 'success',
       });
 
-      // Dispatch a custom event to notify other parts of the app about successful login
       window.dispatchEvent(new Event('loginSuccess'));
 
-      // Redirect based on role and first login status
       setTimeout(() => {
         if (user.role === 'ADMIN') {
           navigate(rootPaths.homeRoot, { replace: true });
-        } else if (user.role === 'TEACHER') {
+        } else if (user.role === 'TEACHER' || user.role === 'USER') {
           if (is_first_login) {
             navigate('/first-time-password-change', { replace: true });
           } else {
             navigate(rootPaths.homeRoot, { replace: true });
           }
         } else {
-          // Handle other roles or unauthorized access
           setError('Tài khoản của bạn không có quyền truy cập vào trang này.');
           setNotification({
             open: true,
             message: 'Tài khoản của bạn không có quyền truy cập vào trang này.',
             severity: 'error',
           });
-          clearAuth(); // Clear auth if role is not allowed
+          clearAuth(); 
         }
         setLoading(false);
       }, 800);

@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LoginHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException; // Import ValidationException
-use Illuminate\Support\Str; // Import Str if needed for register, though not used in this version
-use Illuminate\Support\Facades\DB; // Import DB if transactions are used elsewhere
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Jenssegers\Agent\Agent;
 
 class AuthController extends Controller
 {
@@ -34,7 +36,7 @@ class AuthController extends Controller
     }
 
     // Đăng nhập
-     public function login(Request $request)
+    public function login(Request $request)
     {
         $credentials = $request->validate([
             'email' => 'required|email',
@@ -45,11 +47,18 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            // Ghi lại lịch sử đăng nhập thất bại nếu người dùng tồn tại
+            if ($user) {
+                $this->recordLoginHistory($request, $user, 'failed');
+            }
             return response()->json(['message' => 'Email hoặc mật khẩu không đúng'], 401);
         }
 
         // Tạo token
         $token = $user->createToken('authToken')->plainTextToken;
+
+        // Ghi lại lịch sử đăng nhập thành công
+        $this->recordLoginHistory($request, $user, 'success');
 
         // Lấy trạng thái đăng nhập lần đầu
         $isFirstLogin = (bool) $user->is_first_login; 
@@ -94,7 +103,6 @@ class AuthController extends Controller
              return response()->json(['message' => 'Mật khẩu mới không được trùng với mật khẩu hiện tại'], 422);
         }
 
-
         // Cập nhật mật khẩu mới
         $user->password = Hash::make($request->new_password);
         $user->is_first_login = false; 
@@ -106,7 +114,85 @@ class AuthController extends Controller
     // Đăng xuất
     public function logout(Request $request)
     {
+        // Cập nhật thời gian đăng xuất cho bản ghi đăng nhập gần nhất
+        $this->recordLogout($request->user());
+        
+        // Xóa tất cả token của người dùng
         $request->user()->tokens()->delete();
+        
         return response()->json(['message' => 'Đăng xuất thành công!']);
+    }
+
+    /**
+     * Ghi lại lịch sử đăng nhập của người dùng
+     *
+     * @param Request $request
+     * @param User $user
+     * @param string $status
+     * @return void
+     */
+    private function recordLoginHistory(Request $request, User $user, string $status): void
+    {
+        try {
+            // Sử dụng Agent để phân tích user-agent
+            $agent = new Agent();
+            $agent->setUserAgent($request->userAgent());
+
+            // Lấy thông tin thiết bị và trình duyệt
+            $device = $agent->device() ?: 'Unknown';
+            $platform = $agent->platform() ?: 'Unknown';
+            $browser = $agent->browser() ?: 'Unknown';
+
+            // Lưu thông tin đăng nhập
+            LoginHistory::create([
+                'user_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'device' => $device,
+                'platform' => $platform,
+                'browser' => $browser,
+                'login_at' => now(),
+                'status' => $status,
+                'additional_info' => json_encode([
+                    'request_method' => $request->method(),
+                    'request_url' => $request->fullUrl(),
+                ])
+            ]);
+        } catch (\Exception $e) {
+            // Ghi log lỗi, nhưng không làm gián đoạn quá trình đăng nhập
+            Log::error('Không thể ghi lịch sử đăng nhập: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    /**
+     * Cập nhật thời gian đăng xuất cho bản ghi đăng nhập gần nhất
+     *
+     * @param User $user
+     * @return void
+     */
+    private function recordLogout(User $user): void
+    {
+        try {
+            // Tìm bản ghi đăng nhập gần nhất chưa có thời gian đăng xuất
+            $latestLogin = LoginHistory::where('user_id', $user->id)
+                ->whereNull('logout_at')
+                ->where('status', 'success')
+                ->latest('login_at')
+                ->first();
+
+            if ($latestLogin) {
+                $latestLogin->logout_at = now();
+                $latestLogin->save();
+            }
+        } catch (\Exception $e) {
+            // Ghi log lỗi, nhưng không làm gián đoạn quá trình đăng xuất
+            Log::error('Không thể cập nhật thời gian đăng xuất: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 }

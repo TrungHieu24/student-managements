@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios, { AxiosError } from 'axios'; // Import AxiosError
+import axios, { AxiosError } from 'axios'; 
 
 import {
   Box,
@@ -32,8 +32,6 @@ import {
   FormHelperText,
   OutlinedInput,
   Grid,
-  Checkbox,
-  FormControlLabel,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EditIcon from '@mui/icons-material/Edit';
@@ -41,6 +39,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import dayjs from 'dayjs';
 
 // Define interfaces for data structures
 interface Subject {
@@ -223,6 +222,10 @@ const TeacherManagement: React.FC = () => {
   };
   const fetchSubjects = async () => {
     try {
+
+  
+
+
       const token = localStorage.getItem('token');
       const res = await axios.get('http://localhost:8000/api/subjects', {
         headers: {
@@ -275,19 +278,19 @@ const TeacherManagement: React.FC = () => {
     setDeleteDialogOpen(false);
     setSelectedTeacher(null);
   };
-  const openEditBasicDialog = (teacher: Teacher) => {
+const openEditBasicDialog = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
     setEditBasicForm({
       name: teacher.name,
       email: teacher.email,
       phone: teacher.phone || '',
       gender: teacher.gender || '',
-      birthday: teacher.birthday || '',
+      birthday: teacher.birthday ? dayjs(teacher.birthday).format('YYYY-MM-DD') : '', 
       address: teacher.address || '',
     });
-    setEditBasicFormErrors({});
-    setEditBasicDialogOpen(true);
-  };
+    setEditBasicFormErrors({}); 
+    setEditBasicDialogOpen(true); 
+};
 
   const closeEditBasicDialog = () => {
     setEditBasicDialogOpen(false);
@@ -741,7 +744,7 @@ const TeacherManagement: React.FC = () => {
         email: addForm.email,
         phone: addForm.phone || null,
         gender: addForm.gender || null,
-        birthday: addForm.birthday || null,
+        birthday: addForm.birthday ? dayjs(addForm.birthday).format('YYYY-MM-DD') : null,
         address: addForm.address || null,
         subject_ids: addForm.subjects,
         teaching_assignments: (addForm.teaching_assignments || [])
@@ -757,6 +760,7 @@ const TeacherManagement: React.FC = () => {
             notes: assignment.notes || null,
           })),
       };
+
       // Expecting the generated password in the response
       const res = await axios.post('http://localhost:8000/api/teachers', payload, {
         headers: {
@@ -828,7 +832,7 @@ const TeacherManagement: React.FC = () => {
         email: editBasicForm.email,
         phone: editBasicForm.phone || null,
         gender: editBasicForm.gender || null,
-        birthday: editBasicForm.birthday || null,
+        birthday: editBasicForm.birthday ? dayjs(editBasicForm.birthday).format('YYYY-MM-DD') : null, 
         address: editBasicForm.address || null,
       };
       const res = await axios.put(
@@ -882,7 +886,7 @@ const TeacherManagement: React.FC = () => {
         if (backendErrors.email) formattedErrors.email = backendErrors.email[0];
         if (backendErrors.phone) formattedErrors.phone = backendErrors.phone[0];
         if (backendErrors.gender) formattedErrors.gender = backendErrors.gender[0];
-        if (backendErrors.birthday) formattedErrors.birthday = backendErrors.birthday[0];
+        if (backendErrors.birthday) formattedErrors.birthday = backendErrors.birthday[0]; 
         if (backendErrors.address) formattedErrors.address = backendErrors.address[0];
         setEditBasicFormErrors(formattedErrors);
       } else {
@@ -919,7 +923,7 @@ const TeacherManagement: React.FC = () => {
         email: selectedTeacher.email,
         phone: selectedTeacher.phone,
         gender: selectedTeacher.gender,
-        birthday: selectedTeacher.birthday,
+        birthday: selectedTeacher.birthday ? dayjs(selectedTeacher.birthday).format('YYYY-MM-DD') : null, 
         address: selectedTeacher.address,
 
         subject_ids: detailsEditForm.subjects,
@@ -1101,20 +1105,20 @@ const TeacherManagement: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <TextField
-            name="birthday"
-            label="Ngày sinh"
-            fullWidth
-            value={form.birthday}
-            onChange={handleChange}
-            error={!!addFormErrors.birthday}
-            helperText={addFormErrors.birthday || 'VD:YYYY-MM-DD'}
-            variant="outlined"
-            margin="dense"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
+            <TextField
+              name="birthday"
+              label="Ngày sinh"
+              fullWidth
+              value={form.birthday} 
+              onChange={handleChange}
+              error={!!addFormErrors.birthday}
+              helperText={addFormErrors.birthday || 'VD:YYYY-MM-DD'} 
+              variant="outlined"
+              margin="dense"
+              InputLabelProps={{
+                shrink: true, 
+              }}
+            />
         </Grid>
 
         <Grid item xs={12} sm={6}>
@@ -1422,20 +1426,20 @@ const TeacherManagement: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <TextField
-            name="birthday"
-            label="Ngày sinh"
-            fullWidth
-            value={form.birthday}
-            onChange={handleChange}
-            error={!!errors.birthday}
-            helperText={errors.birthday || 'VD:YYYY-MM-DD'}
-            variant="outlined"
-            margin="dense"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
+            <TextField
+              name="birthday"
+              label="Ngày sinh"
+              fullWidth
+              value={form.birthday} 
+              onChange={handleChange}
+              error={!!errors.birthday}
+              helperText={errors.birthday || 'VD:YYYY-MM-DD'}
+              variant="outlined"
+              margin="dense"
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
         </Grid>
 
         <Grid item xs={12} sm={6}>
@@ -1804,7 +1808,9 @@ const TeacherManagement: React.FC = () => {
                   <TableRow key={teacher.id}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{teacher.name}</TableCell>
-                    <TableCell>{teacher.birthday || 'N/A'}</TableCell>
+                    <TableCell>
+                      {teacher.birthday ? dayjs(teacher.birthday).format('DD/MM/YYYY') : 'N/A'} 
+                    </TableCell>
                     <TableCell>{teacher.gender}</TableCell>
                     <TableCell>{teacher.email}</TableCell>
                     <TableCell>{teacher.phone || 'N/A'}</TableCell>
