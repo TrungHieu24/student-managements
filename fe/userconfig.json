@@ -45,13 +45,21 @@
   },
   {
     "id": 7,
+    "path": "/loginhistory",
+    "title": "history",
+    "icon": "ic:round-history",
+    "active": true
+  },
+  {
+    "id": 8,
     "path": "/setting",
     "title": "settings",
     "icon": "mingcute:settings-3-line",
     "active": true
   },
+
   {
-    "id": 8,
+    "id": 9,
     "path": "/authentication/login",
     "title": "login",
     "icon": "tabler:login",

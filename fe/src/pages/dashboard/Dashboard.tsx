@@ -1,10 +1,10 @@
 // src/pages/dashboard/Dashboard.tsx
-import React from 'react';
+
 import { useAuth } from '../../components/auth/useAuth'; 
 
-// Import các phần riêng biệt của dashboard
 import AdminDashboardContent from '../../../student-management-ADMIN/src/pages/dashboard/Dashboard'; 
 import TeacherDashboardContent from '../../../student-management-TEACHER/src/pages/dashboard/Dashboard'; 
+import UserDashboardContent from '../../../student-management-USER/src/components/Dashboard/Dashboard'; 
 
 const Dashboard = () => {
   const { role } = useAuth(); 
@@ -13,7 +13,9 @@ const Dashboard = () => {
     return <AdminDashboardContent />;
   } else if (role === 'TEACHER') {
     return <TeacherDashboardContent />;
-  } else {
+  } else if(role === 'USER'){
+    return <UserDashboardContent/>
+  } else{
     return <div>Đang tải Dashboard...</div>;
   }
 };

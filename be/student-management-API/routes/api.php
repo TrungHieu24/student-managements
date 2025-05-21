@@ -10,6 +10,7 @@ use App\Http\Controllers\ScoreController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\LoginHistoryController;
 
 
 // 🔐 Route dành cho ADMIN
@@ -81,6 +82,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/teachers', [TeacherController::class, 'store']);
     Route::put('/teachers/{id}', [TeacherController::class, 'update']);
     Route::delete('/teachers/{id}', [TeacherController::class, 'destroy']);
+
+    //Lịch sử đăng nhập
+    Route::get('/login-history', [LoginHistoryController::class, 'index'])->name('login-history.index');
+    Route::get('/login-history/{loginHistory}', [LoginHistoryController::class, 'show'])->name('login-history.show'); 
+    Route::delete('/admin/login-history/{loginHistory}', [LoginHistoryController::class, 'destroy'])->name('admin.login-history.destroy');
+    Route::post('/admin/login-history/export', [LoginHistoryController::class, 'export'])->name('admin.login-history.export');
+    Route::post('/admin/login-history/bulk-delete', [LoginHistoryController::class, 'bulkDelete'])->name('admin.login-history.bulk-delete');
 
     // 🔓 Đăng xuất
     Route::post('/logout', [AuthController::class, 'logout']);

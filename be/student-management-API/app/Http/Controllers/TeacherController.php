@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Auth;
 class TeacherController extends Controller
 {
 
-    public function index()
+ public function index()
     {
         $teachers = Teacher::with(['user', 'subjects', 'teachingAssignments.class', 'teachingAssignments.subject'])->get();
         return response()->json($teachers);
@@ -30,18 +30,21 @@ class TeacherController extends Controller
 
     public function store(Request $request)
     {
+        // Log incoming data for debugging
+        Log::info('Teacher creation request data:', $request->all());
+        
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'gender' => 'nullable|in:Nam,Nữ,Khác',
-            'birthday' => 'nullable|date', 
+            'birthday' => 'nullable|date_format:Y-m-d', // Enforce consistent date format
             'address' => 'required|string|max:255',
-            'subject_ids' => 'array',
+            'subject_ids' => 'nullable|array',
             'subject_ids.*' => 'exists:subjects,id',
-            'teaching_assignments' => 'array',
-            'teaching_assignments.*.class_id' => 'required|exists:classes,id',
-            'teaching_assignments.*.subject_id' => 'required|exists:subjects,id',
+            'teaching_assignments' => 'nullable|array',
+            'teaching_assignments.*.class_id' => 'required|integer|exists:classes,id',
+            'teaching_assignments.*.subject_id' => 'required|integer|exists:subjects,id',
             'teaching_assignments.*.school_year' => 'required|string|max:20|regex:/^\d{4}-\d{4}$/',
             'teaching_assignments.*.semester' => 'required|integer|in:1,2',
             'teaching_assignments.*.is_homeroom_teacher' => 'nullable|boolean',
@@ -69,33 +72,39 @@ class TeacherController extends Controller
                 'phone' => $validatedData['phone'] ?? null,
                 'gender' => $validatedData['gender'] ?? null,
                 'birthday' => $validatedData['birthday'] ?? null,
-                'address' => $validatedData['address'] ?? null,
+                'address' => $validatedData['address'],
             ]);
 
-            if (isset($validatedData['subject_ids'])) {
+            if (isset($validatedData['subject_ids']) && is_array($validatedData['subject_ids'])) {
                 $teacher->subjects()->sync($validatedData['subject_ids']);
             } else {
                 $teacher->subjects()->sync([]);
             }
 
-            if (isset($validatedData['teaching_assignments'])) {
+            if (isset($validatedData['teaching_assignments']) && is_array($validatedData['teaching_assignments'])) {
                 foreach ($validatedData['teaching_assignments'] as $assignmentData) {
+                    // Cast types explicitly to ensure consistent types
+                    $classId = (int)$assignmentData['class_id'];
+                    $subjectId = (int)$assignmentData['subject_id'];
+                    $schoolYear = (string)$assignmentData['school_year'];
+                    $semester = (int)$assignmentData['semester'];
+                    
                     $existingAssignment = TeachingAssignment::where('teacher_id', $teacher->id)
-                        ->where('class_id', $assignmentData['class_id'])
-                        ->where('subject_id', $assignmentData['subject_id'])
-                        ->where('school_year', $assignmentData['school_year'])
-                        ->where('semester', $assignmentData['semester'])
+                        ->where('class_id', $classId)
+                        ->where('subject_id', $subjectId)
+                        ->where('school_year', $schoolYear)
+                        ->where('semester', $semester)
                         ->first();
 
                     if (!$existingAssignment) {
-                         TeachingAssignment::create([
+                        TeachingAssignment::create([
                             'teacher_id' => $teacher->id,
-                            'class_id' => $assignmentData['class_id'],
-                            'subject_id' => $assignmentData['subject_id'],
-                            'school_year' => $assignmentData['school_year'],
-                            'semester' => $assignmentData['semester'],
-                            'is_homeroom_teacher' => $assignmentData['is_homeroom_teacher'] ?? false,
-                            'weekly_periods' => $assignmentData['weekly_periods'] ?? null,
+                            'class_id' => $classId,
+                            'subject_id' => $subjectId,
+                            'school_year' => $schoolYear,
+                            'semester' => $semester,
+                            'is_homeroom_teacher' => isset($assignmentData['is_homeroom_teacher']) ? (bool)$assignmentData['is_homeroom_teacher'] : false,
+                            'weekly_periods' => isset($assignmentData['weekly_periods']) ? (int)$assignmentData['weekly_periods'] : null,
                             'notes' => $assignmentData['notes'] ?? null,
                         ]);
                     }
@@ -116,10 +125,12 @@ class TeacherController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error creating teacher and user: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+            Log::error("Stack trace: " . $e->getTraceAsString());
             return response()->json(['message' => 'Không thể thêm giáo viên và tài khoản.', 'error' => $e->getMessage()], 500);
         }
     }
 
+    // Other methods remain unchanged
     public function show(Teacher $teacher)
     {
         $teacher->load(['user', 'subjects', 'teachingAssignments.class', 'teachingAssignments.subject']);
@@ -136,14 +147,14 @@ class TeacherController extends Controller
             'password' => 'nullable|string|min:8',
             'phone' => 'nullable|string|max:20',
             'gender' => 'nullable|in:Nam,Nữ,Khác',
-            'birthday' => 'nullable|date',
+            'birthday' => 'nullable|date_format:Y-m-d',
             'address' => 'required|string|max:255',
             'subject_ids' => 'nullable|array',
             'subject_ids.*' => 'exists:subjects,id',
             'teaching_assignments' => 'nullable|array',
             'teaching_assignments.*.id' => 'nullable|exists:teaching_assignments,id',
-            'teaching_assignments.*.class_id' => 'required|exists:classes,id',
-            'teaching_assignments.*.subject_id' => 'required|exists:subjects,id',
+            'teaching_assignments.*.class_id' => 'required|integer|exists:classes,id',
+            'teaching_assignments.*.subject_id' => 'required|integer|exists:subjects,id',
             'teaching_assignments.*.school_year' => 'required|string|max:20|regex:/^\d{4}-\d{4}$/',
             'teaching_assignments.*.semester' => 'required|integer|in:1,2',
             'teaching_assignments.*.is_homeroom_teacher' => 'nullable|boolean',
@@ -170,7 +181,7 @@ class TeacherController extends Controller
             $teacher->phone = $validatedData['phone'] ?? null;
             $teacher->gender = $validatedData['gender'] ?? null;
             $teacher->birthday = $validatedData['birthday'] ?? null;
-            $teacher->address = $validatedData['address']?? null;
+            $teacher->address = $validatedData['address'];
             $teacher->save();
 
             if ($request->has('subject_ids')) {
@@ -194,12 +205,12 @@ class TeacherController extends Controller
                         $assignment = TeachingAssignment::where('id', $item['id'])->where('teacher_id', $teacher->id)->first();
                         if ($assignment) {
                             $assignment->update([
-                                'class_id' => $item['class_id'],
-                                'subject_id' => $item['subject_id'],
-                                'school_year' => $item['school_year'],
-                                'semester' => $item['semester'],
-                                'is_homeroom_teacher' => $item['is_homeroom_teacher'] ?? false,
-                                'weekly_periods' => $item['weekly_periods'] ?? null,
+                                'class_id' => (int)$item['class_id'],
+                                'subject_id' => (int)$item['subject_id'],
+                                'school_year' => (string)$item['school_year'],
+                                'semester' => (int)$item['semester'],
+                                'is_homeroom_teacher' => isset($item['is_homeroom_teacher']) ? (bool)$item['is_homeroom_teacher'] : false,
+                                'weekly_periods' => isset($item['weekly_periods']) ? (int)$item['weekly_periods'] : null,
                                 'notes' => $item['notes'] ?? null,
                             ]);
                         } else {
@@ -207,21 +218,21 @@ class TeacherController extends Controller
                         }
                     } else {
                         $existingAssignment = TeachingAssignment::where('teacher_id', $teacher->id)
-                            ->where('class_id', $item['class_id'])
-                            ->where('subject_id', $item['subject_id'])
-                            ->where('school_year', $item['school_year'])
-                            ->where('semester', $item['semester'])
+                            ->where('class_id', (int)$item['class_id'])
+                            ->where('subject_id', (int)$item['subject_id'])
+                            ->where('school_year', (string)$item['school_year'])
+                            ->where('semester', (int)$item['semester'])
                             ->first();
 
                         if (!$existingAssignment) {
                              TeachingAssignment::create([
                                 'teacher_id' => $teacher->id,
-                                'class_id' => $item['class_id'],
-                                'subject_id' => $item['subject_id'],
-                                'school_year' => $item['school_year'],
-                                'semester' => $item['semester'],
-                                'is_homeroom_teacher' => $item['is_homeroom_teacher'] ?? false,
-                                'weekly_periods' => $item['weekly_periods'] ?? null,
+                                'class_id' => (int)$item['class_id'],
+                                'subject_id' => (int)$item['subject_id'],
+                                'school_year' => (string)$item['school_year'],
+                                'semester' => (int)$item['semester'],
+                                'is_homeroom_teacher' => isset($item['is_homeroom_teacher']) ? (bool)$item['is_homeroom_teacher'] : false,
+                                'weekly_periods' => isset($item['weekly_periods']) ? (int)$item['weekly_periods'] : null,
                                 'notes' => $item['notes'] ?? null,
                             ]);
                         } else {

@@ -5,43 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\HasApiTokens; 
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasApiTokens, HasFactory, Notifiable;   
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * Lấy định danh chính của người dùng cho JWT.
-     */
-    public function getJWTIdentifier()
-    {
-        return $this->getKey(); 
-    }   
-
-    /**
-     * Trả về các thông tin bổ sung sẽ được nhúng vào JWT.
-     */
-    public function getJWTCustomClaims()
-    {
-        return [
-            'role' => $this->role, // thêm role vào payload
-        ];
-    }
-
-    /**
-     * Các thuộc tính có thể gán hàng loạt.
+     * @var array<int, 
      */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role',
+        'role', 
     ];
 
     /**
-     * Các thuộc tính ẩn khi chuyển về JSON.
+     * @var array<int, 
      */
     protected $hidden = [
         'password',
@@ -49,10 +31,65 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     /**
-     * Các thuộc tính cần ép kiểu.
+     * @var array<string,
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * @return mixed
+     */
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    /**
+     * @return array
+     */
+    public function getJWTCustomClaims()
+    {
+        return [
+            'role' => $this->role, 
+        ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function loginHistories()
+    {
+        return $this->hasMany(LoginHistory::class);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'ADMIN';
+    }
+
+    /**
+     * @param string 
+     * @return bool
+     */
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        switch ($this->role) {
+            case 'TEACHER':
+                if (in_array($permission, ['view_student_scores', 'update_student_score'])) {
+                    return true;
+                }
+                break;
+            case 'USER':
+                break;
+        }
+        return false;
+    }
 }
