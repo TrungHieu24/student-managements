@@ -41,8 +41,7 @@ const LoginHistory = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      const sortedLoginHistories = response.data.data.sort((a: LoginHistoryItem, b: LoginHistoryItem) => a.id - b.id);
-      setLoginHistories(sortedLoginHistories);
+      setLoginHistories(response.data.data);
     } catch (error) {
       console.error('Error fetching login history:', error);
     } finally {

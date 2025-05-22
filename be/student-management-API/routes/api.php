@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Lớp
     Route::get('/classes', [ClassController::class, 'index']);
+    Route::get('/my-class', [ClassController::class, 'getStudentClass']);
     Route::get('/classes/{id}/students', [ClassController::class, 'showStudents']); 
     Route::get('/classes/{id}/average-subject-scores', [ClassController::class, 'getAverageScorePerSubject']);
     Route::get('/classes/{id}/performance-summary', [ClassController::class, 'getPerformanceSummary']);

@@ -23,6 +23,8 @@ const Sidebar = ({ open }: { open: boolean }): ReactElement => {
       navRole = 'admin';
     } else if (role === 'TEACHER') {
       navRole = 'teacher';
+    } else if (role === 'USER'){
+      navRole = 'user';
     }
     
     console.log('Sidebar - Auth status:', isAuthenticated, 'Role:', role, 'Nav role:', navRole);
@@ -99,8 +101,6 @@ const Sidebar = ({ open }: { open: boolean }): ReactElement => {
           sx={{
             mt: 24.5,
             py: 2.5,
-            height: 500,
-            justifyContent: 'space-between',
           }}
         >
           {Array.isArray(navItems) &&

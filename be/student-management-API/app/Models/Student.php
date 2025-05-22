@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model; 
 use App\Models\Score;
 use App\Models\User;
+use App\Models\ClassModel;
 
 class Student extends BaseModel
 {
@@ -21,6 +22,7 @@ class Student extends BaseModel
         'birthday', 
         'phone',    
         'address', 
+        'user_id'
     ];
      protected $casts = [
          'birthday' => 'date',
@@ -29,7 +31,7 @@ class Student extends BaseModel
 
     public function class()
     {
-        return $this->belongsTo(\App\Models\ClassModel::class, 'class_id');
+        return $this->belongsTo(ClassModel::class, 'class_id');
     }
 
     public function scores()

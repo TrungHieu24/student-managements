@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Models\Teacher;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class ClassController extends Controller
 {
@@ -35,6 +36,54 @@ class ClassController extends Controller
         }
     }
 
+
+    /**
+     * Lấy thông tin lớp học của sinh viên đã đăng nhập.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+ public function getStudentClass(Request $request)
+    {
+        try {
+            $user = Auth::user(); // Lấy người dùng hiện tại
+
+            if ($user->role !== 'USER') {
+                return response()->json([
+                    'message' => 'Truy cập bị từ chối. Chỉ sinh viên mới có thể xem lớp của mình.'
+                ], 403);
+            }
+
+            $student = Student::where('user_id', $user->id)->first();
+
+            if (!$student) {
+                return response()->json([
+                    'message' => 'Không tìm thấy thông tin sinh viên cho người dùng này.'
+                ], 404);
+            }
+
+            // Tải thông tin lớp học, bao gồm danh sách học sinh và giáo viên chủ nhiệm
+            $class = ClassModel::with(['students', 'teacher'])->find($student->class_id);
+
+            if (!$class) {
+                return response()->json([
+                    'message' => 'Không tìm thấy lớp học của sinh viên này.'
+                ], 404);
+            }
+
+            return response()->json([
+                'message' => 'Lấy thông tin lớp học thành công.',
+                'data' => $class
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Lỗi khi lấy thông tin lớp học của sinh viên: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            return response()->json([
+                'message' => 'Lỗi server khi lấy thông tin lớp học.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function getPerformanceSummary($id)
     {
