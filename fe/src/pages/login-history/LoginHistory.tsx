@@ -57,7 +57,7 @@ const LoginHistory = () => {
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Lịch sử đăng nhập
+        Lịch sử đăng nhập của user.
       </Typography>
 
       {loading ? (
