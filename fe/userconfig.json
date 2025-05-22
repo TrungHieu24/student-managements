@@ -25,7 +25,7 @@
     "id": 4,
     "path": "/teacher",
     "title": "teacher",
-    "icon": "material-symbols:person-outline",
+    "icon": "mdi:teacher",
     "active": true
   },
   {
