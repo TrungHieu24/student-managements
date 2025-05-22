@@ -222,10 +222,6 @@ const TeacherManagement: React.FC = () => {
   };
   const fetchSubjects = async () => {
     try {
-
-  
-
-
       const token = localStorage.getItem('token');
       const res = await axios.get('http://localhost:8000/api/subjects', {
         headers: {
