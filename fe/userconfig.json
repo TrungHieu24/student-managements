@@ -82,14 +82,21 @@
    "active": true
   },
   {
-   "id": 3,
+  "id": 3,
+  "path": "/classesteaching",
+  "title": "Lớp đang giảng dạy",
+  "icon": "mdi:book-open",
+  "active": true
+  },
+  {
+   "id": 4,
    "path": "/teaching", 
    "title": "Phân công giảng dạy",
    "icon": "mdi:clipboard-text-outline", 
    "active": true
   },
   {
-   "id": 4,
+   "id": 5,
    "path": "/authentication/login",
    "title": "login",
    "icon": "tabler:login",
