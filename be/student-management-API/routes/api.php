@@ -24,7 +24,7 @@ Route::middleware(['auth:api', 'role:USER'])->group(function () {
 });
 
 // 👨‍🏫 Route dành cho TEACHER
-Route::middleware(['auth:api', 'role:TEACHER', 'check.first.login'])->group(function () {
+Route::middleware(['auth:api', 'role:TEACHER'])->group(function () {
     Route::get('/teacher/info', [TeacherController::class, 'getTeacherInfo']);
 });
 

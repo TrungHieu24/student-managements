@@ -50,7 +50,7 @@ const LoginHistory = () => {
   };
 
   const formatDateTime = (dateTimeString: string | null) => {
-    if (!dateTimeString) return 'N/A';
+    if (!dateTimeString) return '---';
     return moment.utc(dateTimeString).tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY');
   };
 
@@ -83,8 +83,8 @@ const LoginHistory = () => {
             {loginHistories.map((history) => (
               <TableRow key={history.id}>
                 <TableCell>{history.id}</TableCell>
-                <TableCell>{history.user?.name || 'N/A'}</TableCell>
-                <TableCell>{history.user?.email || 'N/A'}</TableCell>
+                <TableCell>{history.user?.name || '---'}</TableCell>
+                <TableCell>{history.user?.email || '---'}</TableCell>
                 <TableCell>{history.ip_address}</TableCell>
                 <TableCell>{history.device}</TableCell>
                 <TableCell>{history.browser}</TableCell>
