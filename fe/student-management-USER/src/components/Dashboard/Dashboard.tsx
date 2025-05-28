@@ -132,11 +132,16 @@ const Dashboard: React.FC = () => {
   ], []);
   // Định nghĩa các loại điểm
   const scoreTypes: ScoreType[] = useMemo(() => [
+    { value: 'oral', label: 'Điểm miệng' },
+    { value: '15min', label: 'Điểm 15 phút' },
+    { value: '45min', label: 'Điểm 45 phút' },
     { value: 'mid1', label: 'Giữa kỳ 1' },
     { value: 'final1', label: 'Cuối kỳ 1' },
     { value: 'mid2', label: 'Giữa kỳ 2' },
     { value: 'final2', label: 'Cuối kỳ 2' },
   ], []);
+  // Thêm state chọn học kỳ cho Dialog xem điểm
+  const [selectedSemester, setSelectedSemester] = useState<string>('1');
   // Hàm tính điểm trung bình và xếp loại cho MỘT HỌC SINH
   const calculateAverageAndCategory = (scores: Score[]): { average: number |
     null; category: string } => {
@@ -330,27 +335,25 @@ const Dashboard: React.FC = () => {
     setStudentPerformanceCategory('Chưa có điểm');
   };
 
-  // Logic để tổ chức điểm theo môn học cho hiển thị trong bảng Dialog
+  // Sửa lại logic tổ chức điểm theo môn và loại điểm, có lọc theo học kỳ
   const scoresBySubjectForDisplay = useMemo(() => {
     const organized: { [subjectName: string]: { [scoreType: string]: Score } } = {};
-
-    scores.forEach(score => {
-      const subjectName = score.subject?.name || score.subject_name || 'Không rõ môn';
-      if (!organized[subjectName]) {
-        organized[subjectName] = {};
-      }
-      organized[subjectName][score.type] = score;
-    });
-
-
+    scores
+      .filter(score => String(score.semester || '1') === selectedSemester)
+      .forEach(score => {
+        const subjectName = score.subject?.name || score.subject_name || 'Không rõ môn';
+        if (!organized[subjectName]) {
+          organized[subjectName] = {};
+        }
+        organized[subjectName][score.type] = score;
+      });
     const sortedSubjectNames = Object.keys(organized).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
     const sortedOrganized: { [subjectName: string]: { [scoreType: string]: Score } } = {};
     sortedSubjectNames.forEach(name => {
       sortedOrganized[name] = organized[name];
     });
-
     return sortedOrganized;
-  }, [scores]);
+  }, [scores, selectedSemester]);
   useEffect(() => {
     const fetchClassInfoAndAllScores = async () => {
       setLoading(true);
@@ -565,8 +568,7 @@ const Dashboard: React.FC = () => {
                           Khối:
                         </TableCell>
                         <TableCell sx={{ borderBottom: 'none', color: '#ffffff' }}>
-
-                          Khối {classDetails.grade}
+                        {classDetails.grade}
                         </TableCell>
                       </TableRow>
                       <TableRow>
@@ -971,7 +973,7 @@ const Dashboard: React.FC = () => {
         </Box>
 
         {/* Dialog xem điểm */}
-        <Dialog open={openScoreDialog} onClose={handleCloseScoreDialog} maxWidth="md" fullWidth>
+        <Dialog open={openScoreDialog} onClose={handleCloseScoreDialog} maxWidth="lg" fullWidth>
           <DialogTitle sx={{
             bgcolor: '#21222d',
             color: '#FFFFFF',
@@ -985,6 +987,25 @@ const Dashboard: React.FC = () => {
             <Box>Điểm số của học sinh: {currentStudentForScores?.name ||
               ''}</Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {/* Nút chọn học kỳ */}
+              <Box sx={{ ml: 2 }}>
+                <Button
+                  variant={selectedSemester === '1' ? 'contained' : 'outlined'}
+                  size="small"
+                  sx={{ mr: 1, minWidth: 90, bgcolor: selectedSemester === '1' ? '#7e57c2' : undefined, color: '#fff' }}
+                  onClick={() => setSelectedSemester('1')}
+                >
+                  Học kỳ 1
+                </Button>
+                <Button
+                  variant={selectedSemester === '2' ? 'contained' : 'outlined'}
+                  size="small"
+                  sx={{ minWidth: 90, bgcolor: selectedSemester === '2' ? '#7e57c2' : undefined, color: '#fff' }}
+                  onClick={() => setSelectedSemester('2')}
+                >
+                  Học kỳ 2
+                </Button>
+              </Box>
               {loadingScores && <CircularProgress size={20} sx={{ ml: 2, color: '#e0e0e0' }} />}
             </Box>
           </DialogTitle>
@@ -1017,49 +1038,54 @@ const Dashboard: React.FC = () => {
                     <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #3a3c4b', borderRadius: '8px', overflow: 'hidden', bgcolor: '#21222d' }}>
                       <Table size="small" sx={{ '& .MuiTableCell-root': { borderBottom: '1px solid #4f5263', color: '#e0e0e0' } }}>
                         <TableHead>
-
                           <TableRow sx={{ backgroundColor: '#31323d' }}>
                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Môn học</TableCell>
-                            {scoreTypes.map(type => (
-                              <TableCell key={type.value} align="right" sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{type.label}</TableCell>
+                            {scoreTypes.filter(st =>
+                              (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
+                              (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
+                            ).map(type => (
+                              <TableCell key={type.value} align="center" sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{type.label}</TableCell>
                             ))}
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {allPossibleSubjects
-
-                              .sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }))
-                              .map((subjectName) => {
-                                const scoresOfType = scoresBySubjectForDisplay[subjectName] ||
-                                  {};
-                                return (
-                                  <TableRow key={subjectName} hover sx={{ '&:hover': { backgroundColor: '#2a2b37' } }}>
-                                    <TableCell sx={{ color: '#e0e0e0' }}>{subjectName}</TableCell>
-                                    {scoreTypes.map(type => {
-
-                                      const scoreEntry = scoresOfType[type.value];
-                                      return (
-                                        <TableCell key={type.value} align="right" sx={{ color:
-                                            '#e0e0e0' }}>
-                                          {scoreEntry ? (
-                                            <Typography variant="body2" sx={{ color: '#e0e0e0' }}>{scoreEntry.score}</Typography>
-
-                                          ) : (
-                                            '---'
-                                          )}
-
-                                        </TableCell>
-                                      );
-                                    })}
-
-                                  </TableRow>
-                                );
-                              })}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </>
-                  )}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {allPossibleSubjects
+                            .sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }))
+                            .map((subjectName) => {
+                              return (
+                                <TableRow key={subjectName} hover sx={{ '&:hover': { backgroundColor: '#2a2b37' } }}>
+                                  <TableCell sx={{ color: '#e0e0e0' }}>{subjectName}</TableCell>
+                                  {scoreTypes.filter(st =>
+                                    (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
+                                    (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
+                                  ).map(type => {
+                                    const allScores = scores.filter(score =>
+                                      (score.subject?.name || score.subject_name || 'Không rõ môn') === subjectName &&
+                                      score.type === type.value &&
+                                      String(score.semester || '1') === selectedSemester
+                                    );
+                                    return (
+                                      <TableCell key={type.value} align="center" sx={{ color: '#e0e0e0' }}>
+                                        {allScores.length > 0 ? (
+                                          <Stack direction="column" spacing={0.5} justifyContent="center" alignItems="center">
+                                            {allScores.map((scoreEntry, idx) => (
+                                              <Typography key={scoreEntry.id || idx} variant="body2" sx={{ color: '#e0e0e0', textAlign: 'center' }}>{scoreEntry.score}</Typography>
+                                            ))}
+                                          </Stack>
+                                        ) : (
+                                          <Typography variant="body2" sx={{ color: '#bdbdbd', textAlign: 'center' }}>---</Typography>
+                                        )}
+                                      </TableCell>
+                                    );
+                                  })}
+                                </TableRow>
+                              );
+                            })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
           </DialogContent>
 
           <DialogActions sx={{

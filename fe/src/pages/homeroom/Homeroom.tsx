@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
     Typography, Box, CircularProgress, Alert, Paper, Table, TableBody,
-    TableCell, TableContainer, TableHead, TableRow, Divider, Stack,
+    TableCell, TableContainer, TableHead, TableRow, Stack,
     Tooltip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid,
     TextField, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
@@ -150,7 +150,6 @@ const Homeroom = () => {
     message: '',
     severity: 'success',
   });
-    // States cho Dialog xem điểm
     const [openScoreDialog, setOpenScoreDialog] = useState(false);
     const [currentStudentForScores, setCurrentStudentForScores] = useState<Student | null>(null);
     const [scores, setScores] = useState<Score[]>([]);
@@ -160,34 +159,6 @@ const Homeroom = () => {
     const [studentAverageScore, setStudentAverageScore] = useState<number | null>(null);
     const [studentPerformanceCategory, setStudentPerformanceCategory] = useState<string>('Đang tính...');
 
-    // States and handlers for Add Score Dialog
-    const [openAddScoreDialog, setOpenAddScoreDialog] = useState(false);
-    const [newScoreData, setNewScoreData] = useState({
-        subject_id: '',
-        score: '',
-        type: ''
-    });
-    const [addingScore, setAddingScore] = useState(false);
-    const [addScoreError, setAddScoreError] = useState<string | null>(null);
-
-    // States and handlers for Edit Score Dialog
-    const [openEditScoreDialog, setOpenEditScoreDialog] = useState(false);
-    const [scoreToEdit, setScoreToEdit] = useState<Score | null>(null);
-    const [editingScore, setEditingScore] = useState(false);
-    const [editScoreError, setEditScoreError] = useState<string | null>(null);
-
-    // States and handlers for Delete Score Confirmation Dialog
-    const [openDeleteScoreConfirm, setOpenDeleteScoreConfirm] = useState(false);
-    const [scoreToDeleteId, setScoreToDeleteId] = useState<number | null>(null);
-    const [deletingScore, setDeletingScore] = useState(false);
-    const [deleteScoreError, setDeleteScoreError] = useState<string | null>(null);
-
-    // States for Subjects list (for add/edit score forms)
-    const [subjects, setSubjects] = useState<SubjectData[]>([]);
-    const [loadingSubjects, setLoadingSubjects] = useState(false);
-    const [subjectError, setSubjectError] = useState<string | null>(null);
-
-    // States and handlers for Add Student Dialog
     const [openAddStudentDialog, setOpenAddStudentDialog] = useState(false);
     const [newStudentData, setNewStudentData] = useState({
         name: '',
@@ -200,26 +171,36 @@ const Homeroom = () => {
     const [addingStudent, setAddingStudent] = useState(false);
     const [addStudentError, setAddStudentError] = useState<string | null>(null);
 
-     // States and handlers for Delete Student Confirmation Dialog (New)
     const [openDeleteStudentConfirm, setOpenDeleteStudentConfirm] = useState(false);
     const [studentToDeleteId, setStudentToDeleteId] = useState<number | null>(null);
     const [studentToDeleteName, setStudentToDeleteName] = useState<string | null>(null);
     const [deletingStudent, setDeletingStudent] = useState(false);
     const [deleteStudentError, setDeleteStudentError] = useState<string | null>(null);
 
-    // States and handlers for Edit Student Dialog (New)
     const [openEditStudentDialog, setOpenEditStudentDialog] = useState(false);
     const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
     const [editingStudent, setEditingStudent] = useState(false);
     const [editStudentError, setEditStudentError] = useState<string | null>(null);
-    // Re-introduced states for class/grade selection for Edit Dialog
+
     const [classes, setClasses] = useState<ClassOption[]>([]);
     const [loadingClasses, setLoadingClasses] = useState(false);
     const [classesError, setClassesError] = useState<string | null>(null);
     const [selectedGrade, setSelectedGrade] = useState<string>('');
 
+    // 1. Thêm state chọn học kỳ cho popup điểm
+    const [selectedSemester, setSelectedSemester] = useState<string>('1');
+
+    // 1. Thêm state để biết đang thêm điểm cho môn/loại điểm nào
+    const [addScoreContext, setAddScoreContext] = useState<{ subject_id: string, type: string } | null>(null);
+
+    const [subjects, setSubjects] = useState<SubjectData[]>([]);
+    const [loadingSubjects, setLoadingSubjects] = useState(false);
+    const [subjectError, setSubjectError] = useState<string | null>(null);
 
     const scoreTypes: ScoreType[] = useMemo(() => [
+        { value: 'oral', label: 'Điểm miệng' },
+        { value: '15min', label: 'Điểm 15 phút' },
+        { value: '45min', label: 'Điểm 45 phút' },
         { value: 'mid1', label: 'Giữa kỳ 1' },
         { value: 'final1', label: 'Cuối kỳ 1' },
         { value: 'mid2', label: 'Giữa kỳ 2' },
@@ -262,7 +243,6 @@ const Homeroom = () => {
     };
 
 
-    // Fetch scores for a student
     const fetchStudentScores = async (studentId: number) => {
         if (!studentId) return;
         setLoadingScores(true);
@@ -308,7 +288,6 @@ const Homeroom = () => {
         }
     };
 
-    // Fetch subjects for the forms
     const fetchSubjects = async () => {
         if (subjects.length > 0) return;
         setLoadingSubjects(true);
@@ -328,7 +307,11 @@ const Homeroom = () => {
           console.error("Error fetching subjects:", err);
           if (isAxiosError(err) && err.response) {
               const axiosError = err as AxiosError<any>;
-              setSubjectError(axiosError.response?.data?.message || 'Không thể tải danh sách môn học.');
+              if (axiosError.response && axiosError.response.data && axiosError.response.data.message) {
+                  setSubjectError(axiosError.response.data.message);
+              } else {
+                  setSubjectError('Không thể tải danh sách môn học.');
+              }
           } else {
               setSubjectError('Không thể tải danh sách môn học.');
           }
@@ -355,196 +338,6 @@ const Homeroom = () => {
         setStudentAverageScore(null);
         setStudentPerformanceCategory('Chưa có điểm');
     };
-
-    // Handlers for Add Score Dialog
-    const handleOpenAddScoreDialog = () => {
-        setNewScoreData({ subject_id: '', score: '', type: '' });
-        setAddScoreError(null);
-        setOpenAddScoreDialog(true);
-    };
-
-    const handleCloseAddScoreDialog = () => {
-        setOpenAddScoreDialog(false);
-    };
-
-    const handleNewScoreInputChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-        const { name, value } = e.target;
-        setNewScoreData(prev => ({ ...prev, [name as string]: value }));
-      };
-
-    const handleCloseNotification = (event?: React.SyntheticEvent | Event, reason?: string) => {
-      if (reason === 'clickaway') { 
-        return;
-      }
-      setNotification({ ...notification, open: false }); 
-    };
-    const handleSaveNewScore = async () => {
-        if (!currentStudentForScores?.id || !newScoreData.subject_id || !newScoreData.type || newScoreData.score === '') {
-          setAddScoreError('Vui lòng điền đầy đủ thông tin.');
-          return;
-        }
-        setAddingScore(true);
-        setAddScoreError(null);
-        try {
-          const token = localStorage.getItem('token');
-          if (!token) {
-            setAddScoreError('Phiên đăng nhập hết hạn.');
-            setAddingScore(false);
-            return;
-          }
-          const dataToSend = {
-            student_id: currentStudentForScores.id,
-            subject_id: parseInt(newScoreData.subject_id as string),
-            score: parseFloat(newScoreData.score as string),
-            type: newScoreData.type
-          };
-          await axios.post('http://localhost:8000/api/scores', dataToSend, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          handleCloseAddScoreDialog();
-          fetchStudentScores(currentStudentForScores.id);
-        } catch (err: any) {
-          console.error("Error adding score:", err.response || err);
-          if (isAxiosError(err) && err.response) {
-            if (err.response.data && err.response.data.errors) {
-              setAddScoreError("Lỗi nhập liệu: " + Object.values(err.response.data.errors).join(', '));
-            } else if (err.response.data && err.response.data.message) {
-              setAddScoreError("Lỗi: " + err.response.data.message);
-            } else {
-              setAddScoreError("Lỗi khi thêm điểm.");
-            }
-          } else {
-            setAddScoreError("Lỗi không xác định khi thêm điểm.");
-          }
-        } finally {
-          setAddingScore(false);
-        }
-    };
-
-
-    // Handlers for Edit Score Dialog
-    const handleOpenEditScoreDialog = (scoreData: Score) => {
-        setScoreToEdit(scoreData);
-        setEditScoreError(null);
-        setOpenEditScoreDialog(true);
-    };
-
-    const handleCloseEditScoreDialog = () => {
-        setOpenEditScoreDialog(false);
-        setScoreToEdit(null);
-    };
-
-    const handleEditScoreInputChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-        const { name, value } = e.target;
-        setScoreToEdit(prev => prev ? { ...prev, [name as string]: value } : null);
-    };
-
-    const handleSaveEditedScore = async () => {
-        if (!scoreToEdit?.id || scoreToEdit.score === '') {
-          setEditScoreError('Điểm số không hợp lệ.');
-          return;
-        }
-        setEditingScore(true);
-        setEditScoreError(null);
-        try {
-          const token = localStorage.getItem('token');
-          if (!token) {
-            setEditScoreError('Phiên đăng nhập hết hạn.');
-            setEditingScore(false);
-            return;
-          }
-          const dataToSend = {
-            score: parseFloat(scoreToEdit.score as string),
-          }
-          await axios.put(`http://localhost:8000/api/scores/${scoreToEdit.id}`, dataToSend, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          handleCloseEditScoreDialog();
-          if (currentStudentForScores) {
-              fetchStudentScores(currentStudentForScores.id);
-          }
-        } catch (err: any) {
-          console.error("Error updating score:", err.response || err);
-          if (isAxiosError(err) && err.response) {
-            if (err.response.data && err.response.data.errors) {
-              setEditScoreError("Lỗi nhập liệu: " + Object.values(err.response.data.errors).join(', '));
-            } else if (err.response.data && err.response.data.message) {
-              setEditScoreError("Lỗi: " + err.response.data.message);
-            } else {
-              setEditScoreError("Lỗi khi cập nhật điểm.");
-            }
-          } else {
-            setEditScoreError("Lỗi không xác định khi cập nhật điểm.");
-          }
-        } finally {
-          setEditingScore(false);
-        }
-    };
-
-    // Handlers for Delete Score Confirmation Dialog
-    const handleOpenDeleteScoreConfirm = (scoreId: number) => {
-        setScoreToDeleteId(scoreId);
-        setDeleteScoreError(null);
-        setOpenDeleteScoreConfirm(true);
-    };
-
-    const handleCloseDeleteScoreConfirm = () => {
-        setOpenDeleteScoreConfirm(false);
-        setScoreToDeleteId(null);
-    };
-
-    const handleConfirmDeleteScore = async () => {
-        if (!scoreToDeleteId || !currentStudentForScores?.id) return;
-        setDeletingScore(true);
-        setDeleteScoreError(null);
-        try {
-          const token = localStorage.getItem('token');
-          if (!token) {
-            setDeleteScoreError('Phiên đăng nhập hết hạn.');
-            setDeletingScore(false);
-            return;
-          }
-          await axios.delete(`http://localhost:8000/api/scores/${scoreToDeleteId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          handleCloseDeleteScoreConfirm();
-          fetchStudentScores(currentStudentForScores.id);
-        } catch (err: any) {
-          console.error("Error deleting score:", err.response || err);
-          if (isAxiosError(err) && err.response && err.response.data && err.response.data.message) {
-            setDeleteScoreError("Lỗi: " + err.response.data.message);
-          } else {
-            setDeleteScoreError("Lỗi không xác định khi xóa điểm.");
-          }
-        } finally {
-          setDeletingScore(false);
-        }
-    };
-
-
-    // Logic để tổ chức điểm theo môn học cho hiển thị trong bảng Dialog
-    const scoresBySubjectForDisplay = useMemo(() => {
-        const organized: { [subjectName: string]: { [scoreType: string]: Score } } = {};
-
-        scores.forEach(score => {
-            const subjectName = score.subject?.name || score.subject_name || (score.subject as string) || 'Không rõ môn';
-            if (!organized[subjectName]) {
-                organized[subjectName] = {};
-            }
-            organized[subjectName][score.type] = score;
-        });
-
-        const sortedSubjectNames = Object.keys(organized).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
-        const sortedOrganized: { [subjectName: string]: { [scoreType: string]: Score } } = {};
-        sortedSubjectNames.forEach(name => {
-            sortedOrganized[name] = organized[name];
-        });
-
-        return sortedOrganized;
-
-    }, [scores]);
-
-    // --- Add Student Functionality ---
 
     const handleOpenAddStudentDialog = () => {
         setNewStudentData({
@@ -657,7 +450,7 @@ const Homeroom = () => {
     };
     
 
-     const grades = ['10', '11', '12']; // Assuming these are the relevant grades
+     const grades = ['10', '11', '12']; 
 
      const fetchClasses = async () => {
          setLoadingClasses(true);
@@ -717,7 +510,7 @@ const Homeroom = () => {
                  headers: { Authorization: `Bearer ${token}` },
              });
              handleCloseDeleteStudentConfirm();
-             fetchHomeroomClassesWithStats(); // Refresh data after deletion
+             fetchHomeroomClassesWithStats(); 
          } catch (err: any) {
               console.error("Error deleting student:", err.response || err);
               if (isAxiosError(err) && err.response && err.response.data && err.response.data.message) {
@@ -732,9 +525,8 @@ const Homeroom = () => {
 
      const handleOpenEditStudentDialog = (student: Student) => {
          setStudentToEdit(student);
-         // Set selected grade and fetch classes for the dropdown
-          setSelectedGrade(String(student.class?.grade || '')); // Set grade based on student's class
-         fetchClasses(); // Fetch classes for the dropdown
+          setSelectedGrade(String(student.class?.grade || '')); 
+         fetchClasses(); 
          setEditStudentError(null);
          setOpenEditStudentDialog(true);
      };
@@ -742,8 +534,7 @@ const Homeroom = () => {
      const handleCloseEditStudentDialog = () => {
          setOpenEditStudentDialog(false);
          setStudentToEdit(null);
-         setSelectedGrade(''); // Reset grade and class selection states
-         // setClasses([]); // Optionally reset classes state
+         setSelectedGrade(''); 
          setEditStudentError(null);
      };
 
@@ -775,7 +566,7 @@ const Homeroom = () => {
              const dataToSend = {
                  name: studentToEdit.name,
                  gender: studentToEdit.gender,
-                 birthday: studentToEdit.birthday, // Already formatted in handleEditStudentDateChange
+                 birthday: studentToEdit.birthday, 
                  email: studentToEdit.email || null,
                  phone: studentToEdit.phone || null,
                  address: studentToEdit.address || null,
@@ -789,7 +580,7 @@ const Homeroom = () => {
                  },
              });
              handleCloseEditStudentDialog();
-             fetchHomeroomClassesWithStats(); // Refresh data after edit
+             fetchHomeroomClassesWithStats();
          } catch (err: any) {
              console.error("Error updating student:", err.response || err);
               if (isAxiosError(err) && err.response) {
@@ -809,15 +600,11 @@ const Homeroom = () => {
          }
      };
 
-    // Helper to get grade from class name (assuming format like '10A1', '11B3', etc.)
     const getGradeFromClassName = (className: string | undefined | null): string => {
          if (!className) return '';
          const match = className.match(/^(\d+)/);
          return match ? match[1] : '';
      };
-
-
-    // --- End Edit and Delete Student Functionality ---
 
 
     useEffect(() => {
@@ -863,7 +650,6 @@ const Homeroom = () => {
                              }),
                         ]);
 
-                        // Ensure students have a 'class' object for the edit dialog
                         const studentsWithClass = classItem.students ? classItem.students.map(student => ({
                              ...student,
                              class: { id: classItem.id, name: classItem.name, grade: classItem.grade }
@@ -887,7 +673,6 @@ const Homeroom = () => {
                          if (isAxiosError(statsErr) && statsErr.response) {
                              errorMsg = statsErr.response.data?.message || `Lỗi tải thống kê (Status: ${statsErr.response.status})`;
                          }
-                         // Ensure students are still included even if stats fail, with class info
                          const studentsWithClass = classItem.students ? classItem.students.map(student => ({
                               ...student,
                               class: { id: classItem.id, name: classItem.name, grade: classItem.grade }
@@ -952,6 +737,31 @@ const Homeroom = () => {
 
     const performanceCategories: (keyof ClassPerformanceSummaryData)[] = ["Giỏi", "Khá", "Trung bình", "Yếu", "Kém", "Chưa xếp loại"];
 
+    // 2. Tạo hàm group điểm theo môn và học kỳ (giống ClassesTeaching nhưng giữ logic cũ)
+    const scoresBySubjectAndSemester = useMemo(() => {
+        const organized: { [semester: string]: { [subjectName: string]: { [scoreType: string]: Score[] } } } = {};
+        scores.forEach(score => {
+            const semester = score.semester ? String(score.semester) : '1';
+            const subjectName = score.subject?.name || score.subject_name || (typeof score.subject === 'string' ? score.subject : '') || 'Không rõ môn';
+            if (!organized[semester]) organized[semester] = {};
+            if (!organized[semester][subjectName]) organized[semester][subjectName] = {};
+            if (!organized[semester][subjectName][score.type]) organized[semester][subjectName][score.type] = [];
+            organized[semester][subjectName][score.type].push(score);
+        });
+        // Sắp xếp tên môn
+        Object.keys(organized).forEach(sem => {
+            const sorted: { [subjectName: string]: { [scoreType: string]: Score[] } } = {};
+            Object.keys(organized[sem]).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' })).forEach(name => {
+                sorted[name] = organized[sem][name];
+            });
+            organized[sem] = sorted;
+        });
+        return organized;
+    }, [scores]);
+
+    const handleCloseNotification = () => {
+        setNotification(prev => ({ ...prev, open: false }));
+    };
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -960,7 +770,6 @@ const Homeroom = () => {
                     <Typography variant="h4" gutterBottom sx={{ color: '#FFFFFF', mb: 0 }}>
                         Lớp Chủ Nhiệm
                     </Typography>
-                    {/* Add Student Button */}
                     {!loading && homeroomClasses.length > 0 && (
                          <Button
                             variant="contained"
@@ -972,7 +781,6 @@ const Homeroom = () => {
                         </Button>
                     )}
                 </Stack>
-
 
                 {(loading || loadingAllStatistics) && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
@@ -998,7 +806,6 @@ const Homeroom = () => {
                         {homeroomClasses.map((classItem) => (
                             <Paper key={classItem.id} elevation={3} sx={{ p: 3, borderRadius: '8px', border: '1px solid #3a3c4b', bgcolor: '#21222d', color: '#e0e0e0' }}>
                                 <Stack spacing={3}>
-                                    {/* Thông tin lớp */}
                                     <Box>
                                         <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                             <Box>
@@ -1006,7 +813,6 @@ const Homeroom = () => {
                                             </Box>
                                             <Box>{classItem.school_year}</Box>
                                         </Typography>
-                                        {/* Các thông tin chi tiết của lớp */}
                                         <Grid container spacing={2}>
                                             <Grid item xs={12} sm={6}>
                                                 <Typography variant="body1" sx={{ color: '#e0e0e0' }}>
@@ -1021,7 +827,6 @@ const Homeroom = () => {
                                         </Grid>
                                     </Box>
 
-                                    {/* Thống kê học lực của lớp */}
                                     <Box>
                                         <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF' }}>
                                             Thống kê học lực của lớp {classItem.name}
@@ -1063,8 +868,6 @@ const Homeroom = () => {
                                          )}
                                     </Box>
 
-
-                                    {/* Điểm trung bình từng môn của lớp */}
                                     <Box>
                                          <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF' }}>
                                              Điểm trung bình từng môn của lớp {classItem.name}
@@ -1099,14 +902,11 @@ const Homeroom = () => {
                                          )}
                                     </Box>
 
-
-                                    {/* Tiêu đề danh sách học sinh */}
                                     <Box>
                                         <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF' }}>
                                             Danh sách học sinh lớp {classItem.name} ({classItem.students ? classItem.students.length : 0})
                                         </Typography>
 
-                                        {/* Bảng hiển thị danh sách học sinh */}
                                         {classItem.students && classItem.students.length > 0 ? (
                                             <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #3a3c4b', borderRadius: '8px', overflow: 'hidden', bgcolor: '#21222d' }}>
                                                 <Table size="small" sx={{ '& .MuiTableCell-root': { borderBottom: '1px solid #4f5263', color: '#e0e0e0' } }}>
@@ -1119,7 +919,6 @@ const Homeroom = () => {
                                                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Email</TableCell>
                                                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Số điện thoại</TableCell>
                                                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Địa chỉ</TableCell>
-                                                            {/* Changed header to Thao tác */}
                                                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Thao tác</TableCell>
                                                         </TableRow>
                                                     </TableHead>
@@ -1185,7 +984,7 @@ const Homeroom = () => {
                 )}
 
                 {/* Dialog xem điểm (existing) */}
-                <Dialog open={openScoreDialog} onClose={handleCloseScoreDialog} maxWidth="md" fullWidth>
+                <Dialog open={openScoreDialog} onClose={handleCloseScoreDialog} maxWidth="lg" fullWidth>
                     <DialogTitle sx={{
                         bgcolor: '#21222d',
                         color: '#FFFFFF',
@@ -1197,17 +996,25 @@ const Homeroom = () => {
                     }}>
                         <Box>Điểm số của học sinh: {currentStudentForScores?.name || ''}</Box>
                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                             <Tooltip title="Thêm điểm mới">
-                                 <IconButton
-                                    color="primary"
-                                    onClick={handleOpenAddScoreDialog}
-                                    disabled={loadingSubjects}
-                                    aria-label="Thêm điểm mới"
-                                    sx={{ color: '#e0e0e0' }}
+                             {/* Bỏ nút thêm điểm ở đây, chỉ giữ lại các nút chuyển học kỳ và loading/subjectError nếu có */}
+                             <Box sx={{ ml: 2 }}>
+                                 <Button
+                                     variant={selectedSemester === '1' ? 'contained' : 'outlined'}
+                                     size="small"
+                                     sx={{ mr: 1, minWidth: 90, bgcolor: selectedSemester === '1' ? '#7e57c2' : undefined, color: '#fff' }}
+                                     onClick={() => setSelectedSemester('1')}
                                  >
-                                    <AddIcon />
-                                 </IconButton>
-                              </Tooltip>
+                                     Học kỳ 1
+                                 </Button>
+                                 <Button
+                                     variant={selectedSemester === '2' ? 'contained' : 'outlined'}
+                                     size="small"
+                                     sx={{ minWidth: 90, bgcolor: selectedSemester === '2' ? '#7e57c2' : undefined, color: '#fff' }}
+                                     onClick={() => setSelectedSemester('2')}
+                                 >
+                                     Học kỳ 2
+                                 </Button>
+                             </Box>
                              {(loadingScores || loadingSubjects) && <CircularProgress size={20} sx={{ ml: 2, color: '#e0e0e0' }} />}
                              {subjectError && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{subjectError}</Typography>}
                          </Box>
@@ -1232,52 +1039,40 @@ const Homeroom = () => {
                                         Học lực: {studentPerformanceCategory || 'N/A'}
                                     </Typography>
                                 </Box>
-
-                                {Object.keys(scoresBySubjectForDisplay).length > 0 ? (
-                                    <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #3a3c4b', borderRadius: '8px', overflow: 'hidden', bgcolor: '#21222d' }}>
-                                        <Table size="small" sx={{ '& .MuiTableCell-root': { borderBottom: '1px solid #4f5263', color: '#e0e0e0' } }}>
+                                {/* Bảng điểm: cột là môn, dòng là loại điểm */}
+                                {subjects.length > 0 ? (
+                                    <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #3a3c4b', borderRadius: '8px', overflow: 'auto', bgcolor: '#21222d', mb: 2 }}>
+                                        <Table size="small" sx={{ minWidth: 700, '& .MuiTableCell-root': { borderBottom: '1px solid #4f5263', color: '#e0e0e0' } }}>
                                             <TableHead>
                                                 <TableRow sx={{ backgroundColor: '#31323d' }}>
-                                                    <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Môn học</TableCell>
-                                                    {scoreTypes.map(type => (
-                                                        <TableCell key={type.value} align="right" sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{type.label}</TableCell>
+                                                    <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF', minWidth: 120 }}>Môn học</TableCell>
+                                                    {scoreTypes.filter(st =>
+                                                        (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
+                                                        (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
+                                                    ).map(type => (
+                                                        <TableCell key={type.value} align="center" sx={{ fontWeight: 'bold', color: '#FFFFFF', minWidth: 120 }}>{type.label}</TableCell>
                                                     ))}
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {Object.entries(scoresBySubjectForDisplay).map(([subjectName, scoresOfType]) => (
-                                                    <TableRow key={subjectName} hover sx={{ '&:hover': { backgroundColor: '#2a2b37' } }}>
-                                                        <TableCell sx={{ color: '#e0e0e0' }}>{subjectName}</TableCell>
-                                                        {scoreTypes.map(type => {
-                                                            const scoreEntry = scoresOfType[type.value];
+                                                {subjects.map(subject => (
+                                                    <TableRow key={subject.id} hover sx={{ '&:hover': { backgroundColor: '#2a2b37' } }}>
+                                                        <TableCell sx={{ fontWeight: 'bold', color: '#e0e0e0' }}>{subject.name}</TableCell>
+                                                        {scoreTypes.filter(st =>
+                                                            (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
+                                                            (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
+                                                        ).map(type => {
+                                                            const scoresArr = scoresBySubjectAndSemester[selectedSemester]?.[subject.name]?.[type.value] || [];
                                                             return (
-                                                                <TableCell key={type.value} align="right" sx={{ color: '#e0e0e0' }}>
-                                                                    {scoreEntry ? (
-                                                                         <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
-                                                                             <Typography variant="body2" sx={{ color: '#e0e0e0' }}>{scoreEntry.score}</Typography>
-                                                                             <Tooltip title="Sửa điểm">
-                                                                                  <IconButton
-                                                                                    size="small"
-                                                                                    onClick={() => handleOpenEditScoreDialog(scoreEntry)}
-                                                                                    aria-label="Sửa điểm"
-                                                                                     sx={{ color: '#e0e0e0' }}
-                                                                                  >
-                                                                                     <Edit fontSize="small" />
-                                                                                  </IconButton>
-                                                                             </Tooltip>
-                                                                              <Tooltip title="Xóa điểm">
-                                                                                 <IconButton
-                                                                                    size="small"
-                                                                                    onClick={() => handleOpenDeleteScoreConfirm(scoreEntry.id)}
-                                                                                    aria-label="Xóa điểm"
-                                                                                    color="error"
-                                                                                 >
-                                                                                     <Delete fontSize="small" />
-                                                                                 </IconButton>
-                                                                              </Tooltip>
-                                                                         </Stack>
+                                                                <TableCell key={type.value} align="center">
+                                                                    {scoresArr.length > 0 ? (
+                                                                        <Stack direction="column" spacing={0.5} justifyContent="center" alignItems="center">
+                                                                            {scoresArr.map((scoreEntry, idx) => (
+                                                                                <Typography key={scoreEntry.id || idx} variant="body2" sx={{ color: '#e0e0e0' }}>{scoreEntry.score}</Typography>
+                                                                            ))}
+                                                                        </Stack>
                                                                     ) : (
-                                                                         '-'
+                                                                        <Typography variant="body2" sx={{ color: '#bdbdbd' }}>-</Typography>
                                                                     )}
                                                                 </TableCell>
                                                             );
@@ -1289,7 +1084,7 @@ const Homeroom = () => {
                                     </TableContainer>
                                 ) : (
                                     <Typography variant="body2" color="text.secondary" sx={{ ml: 2, fontStyle: 'italic', color: '#e0e0e0' }}>
-                                        Không tìm thấy điểm chi tiết theo môn.
+                                        Không có điểm nào cho học kỳ này.
                                     </Typography>
                                 )}
                             </>
@@ -1303,220 +1098,6 @@ const Homeroom = () => {
                     }}>
                         <Button onClick={handleCloseScoreDialog}>Đóng</Button>
                     </DialogActions>
-                </Dialog>
-
-                {/* Add Score Dialog (existing) */}
-                <Dialog open={openAddScoreDialog} onClose={handleCloseAddScoreDialog} maxWidth="xs" fullWidth>
-                    <DialogTitle sx={{ bgcolor: '#21222d', color: '#FFFFFF', borderBottom: '1px solid #3a3c4b' }}>Thêm Điểm Mới</DialogTitle>
-                    <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, bgcolor: '#21222d', color: '#e0e0e0' }}>
-                      <Typography sx={{ color: '#e0e0e0' }}>Học sinh: {currentStudentForScores?.name || ''}</Typography>
-                       {addScoreError && <Alert severity="error">{addScoreError}</Alert>}
-
-                      <FormControl fullWidth required disabled={loadingSubjects}>
-                        <InputLabel sx={{ color: '#e0e0e0' }}>Môn học</InputLabel>
-                        <Select
-                          name="subject_id"
-                          value={newScoreData.subject_id}
-                          label="Môn học"
-                          onChange={handleNewScoreInputChange}
-                          sx={{
-                              color: '#e0e0e0',
-                              '.MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#4f5263',
-                              },
-                              '&:hover .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#6a6d80',
-                              },
-                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#7e57c2',
-                              },
-                              '.MuiSvgIcon-root': {
-                                color: '#e0e0e0',
-                              },
-                          }}
-                           MenuProps={{
-                               PaperProps: {
-                                    sx: {
-                                         bgcolor: '#21222d',
-                                         '.MuiMenuItem-root': {
-                                             color: '#e0e0e0',
-                                             '&:hover': {
-                                                bgcolor: '#31323d',
-                                             },
-                                             '&.Mui-selected': {
-                                                bgcolor: '#4f5263',
-                                             }
-                                         },
-                                    },
-                               },
-                           }}
-                        >
-                          {loadingSubjects ? (
-                             <MenuItem disabled>Đang tải môn học...</MenuItem>
-                          ) : (
-                             subjects.map(subject => (
-                               <MenuItem key={subject.id} value={subject.id}>
-                                 {subject.name}
-                               </MenuItem>
-                             ))
-                          )}
-                           {!loadingSubjects && subjects.length === 0 && (
-                              <MenuItem disabled>Không có môn học</MenuItem>
-                           )}
-                        </Select>
-                      </FormControl>
-
-                       <FormControl fullWidth required>
-                         <InputLabel sx={{ color: '#e0e0e0' }}>Loại điểm</InputLabel>
-                          <Select
-                            name="type"
-                            value={newScoreData.type}
-                            label="Loại điểm"
-                            onChange={handleNewScoreInputChange}
-                             sx={{
-                                color: '#e0e0e0',
-                                '.MuiOutlinedInput-notchedOutline': {
-                                  borderColor: '#4f5263',
-                                },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: '#6a6d80',
-                                },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: '#7e57c2',
-                                },
-                                '.MuiSvgIcon-root': {
-                                  color: '#e0e0e0',
-                                },
-                            }}
-                            MenuProps={{
-                               PaperProps: {
-                                    sx: {
-                                         bgcolor: '#21222d',
-                                         '.MuiMenuItem-root': {
-                                             color: '#e0e0e0',
-                                             '&:hover': {
-                                                bgcolor: '#31323d',
-                                             },
-                                             '&.Mui-selected': {
-                                                bgcolor: '#4f5263',
-                                             }
-                                         },
-                                    },
-                               },
-                           }}
-                          >
-                            {scoreTypes.map(type => (
-                              <MenuItem key={type.value} value={type.value}>
-                                {type.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                       </FormControl>
-
-                      <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        label="Điểm số"
-                        name="score"
-                        type="number"
-                        inputProps={{ step: "0.1", min: "0", max: "10" }}
-                        value={newScoreData.score}
-                        onChange={handleNewScoreInputChange}
-                         sx={{
-                            '.MuiInputBase-input': {
-                              color: '#e0e0e0',
-                            },
-                            '.MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#4f5263',
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#6a6d80',
-                            },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#7e57c2',
-                            },
-                            '.MuiInputLabel-root': {
-                                color: '#e0e0e0',
-                                '&.Mui-focused': {
-                                    color: '#7e57c2',
-                                }
-                            }
-                        }}
-                      />
-                    </DialogContent>
-                   <DialogActions sx={{ bgcolor: '#21222d', borderTop: '1px solid #3a3c4b' }}>
-                      <Button onClick={handleCloseAddScoreDialog} disabled={addingScore}>Hủy</Button>
-                      <Button onClick={handleSaveNewScore} disabled={addingScore || !newScoreData.subject_id || !newScoreData.type || newScoreData.score === ''}>
-                        {addingScore ? <CircularProgress size={24} sx={{ color: '#e0e0e0' }} /> : 'Lưu'}
-                      </Button>
-                    </DialogActions>
-                </Dialog>
-
-                {/* Edit Score Dialog (existing) */}
-                {scoreToEdit && (
-                     <Dialog open={openEditScoreDialog} onClose={handleCloseEditScoreDialog} maxWidth="xs" fullWidth>
-                       <DialogTitle sx={{ bgcolor: '#21222d', color: '#FFFFFF', borderBottom: '1px solid #3a3c4b' }}>Sửa Điểm</DialogTitle>
-                       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, bgcolor: '#21222d', color: '#e0e0e0' }}>
-                         <Typography sx={{ color: '#e0e0e0' }}>Môn: {scoreToEdit.subject?.name || scoreToEdit.subject_name || (scoreToEdit.subject as string) || '---'}</Typography>
-                         <Typography sx={{ color: '#e0e0e0' }}>Loại điểm: {scoreTypes.find(t => t.value === scoreToEdit.type)?.label || scoreToEdit.type || '---'}</Typography>
-
-                         {editScoreError && <Alert severity="error">{editScoreError}</Alert>}
-
-                         <TextField
-                           margin="normal"
-                           required
-                           fullWidth
-                           label="Điểm số"
-                           name="score"
-                           type="number"
-                           inputProps={{ step: "0.1", min: "0", max: "10" }}
-                           value={scoreToEdit.score}
-                           onChange={handleEditScoreInputChange}
-                            sx={{
-                                '.MuiInputBase-input': {
-                                  color: '#e0e0e0',
-                                },
-                                '.MuiOutlinedInput-notchedOutline': {
-                                  borderColor: '#4f5263',
-                                },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: '#6a6d80',
-                                },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: '#7e57c2',
-                                },
-                                 '.MuiInputLabel-root': {
-                                    color: '#e0e0e0',
-                                    '&.Mui-focused': {
-                                        color: '#7e57c2',
-                                    }
-                                }
-                            }}
-                         />
-                       </DialogContent>
-                       <DialogActions sx={{ bgcolor: '#21222d', borderTop: '1px solid #3a3c4b' }}>
-                         <Button onClick={handleCloseEditScoreDialog} disabled={editingScore}>Hủy</Button>
-                         <Button onClick={handleSaveEditedScore} disabled={editingScore || scoreToEdit.score === ''}>
-                           {editingScore ? <CircularProgress size={24} sx={{ color: '#e0e0e0' }} /> : 'Lưu'}
-                         </Button>
-                       </DialogActions>
-                     </Dialog>
-                )}
-
-                {/* Delete Score Confirmation Dialog (existing) */}
-                <Dialog open={openDeleteScoreConfirm} onClose={handleCloseDeleteScoreConfirm}>
-                     <DialogTitle sx={{ bgcolor: '#21222d', color: '#FFFFFF', borderBottom: '1px solid #3a3c4b' }}>Xác nhận xóa điểm</DialogTitle>
-                     <DialogContent sx={{ bgcolor: '#21222d', color: '#e0e0e0' }}>
-                        {deleteScoreError && <Alert severity="error">{deleteScoreError}</Alert>}
-                        <Typography sx={{ color: '#e0e0e0' }}>Bạn có chắc chắn muốn xóa điểm này không?</Typography>
-                     </DialogContent>
-                     <DialogActions sx={{ bgcolor: '#21222d', borderTop: '1px solid #3a3c4b' }}>
-                        <Button onClick={handleCloseDeleteScoreConfirm} disabled={deletingScore}>Hủy</Button>
-                        <Button onClick={handleConfirmDeleteScore} color="error" disabled={deletingScore}>
-                           {deletingScore ? <CircularProgress size={24} sx={{ color: '#e0e0e0' }} /> : 'Xóa'}
-                        </Button>
-                     </DialogActions>
                 </Dialog>
 
                 {/* Add Student Dialog (existing) */}
@@ -1676,7 +1257,7 @@ const Homeroom = () => {
                                  onChange={(e) => {
                                      const grade = e.target.value as string;
                                      setSelectedGrade(grade);
-                                     setStudentToEdit(prev => prev ? { ...prev, class_id: '' } : null); // Reset class when grade changes
+                                     setStudentToEdit(prev => prev ? { ...prev, class_id: '' } : null); 
                                  }}
                                  sx={{
                                       color: '#e0e0e0',
@@ -1716,7 +1297,7 @@ const Homeroom = () => {
                                       <MenuItem disabled>{classesError}</MenuItem>
                                  ) : (
                                       classes
-                                          .filter(cls => String(cls.grade) === selectedGrade) // Filter by selected grade
+                                          .filter(cls => String(cls.grade) === selectedGrade) 
                                           .map((cls) => (
                                               <MenuItem key={cls.id} value={cls.id}>
                                                   {cls.name}
@@ -1828,8 +1409,6 @@ const Homeroom = () => {
                       </Dialog>
                  )}
 
-
-                 {/* Delete Student Confirmation Dialog (New) */}
                  <Dialog open={openDeleteStudentConfirm} onClose={handleCloseDeleteStudentConfirm}>
                       <DialogTitle sx={{ bgcolor: '#21222d', color: '#FFFFFF', borderBottom: '1px solid #3a3c4b' }}>Xác nhận xóa học sinh</DialogTitle>
                       <DialogContent sx={{ bgcolor: '#21222d', color: '#e0e0e0' }}>
@@ -1844,18 +1423,17 @@ const Homeroom = () => {
                       </DialogActions>
                  </Dialog>
                              <Snackbar
-                open={notification.open} // Mở/đóng dựa trên state notification.open
-                autoHideDuration={8000} // Thời gian tự động đóng (ví dụ: 8 giây)
-                onClose={handleCloseNotification} // Gọi hàm này khi thông báo đóng
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // Vị trí hiển thị (ví dụ: trên cùng, giữa)
+                open={notification.open} 
+                autoHideDuration={8000} 
+                onClose={handleCloseNotification} 
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }} 
             >
-                {/* Sử dụng Alert bên trong Snackbar để có màu sắc và icon */}
                 <Alert
                     onClose={handleCloseNotification}
-                    severity={notification.severity} // Màu sắc dựa trên state notification.severity ('success' hoặc 'error')
+                    severity={notification.severity}
                     sx={{ width: '100%' }}
                 >
-                    {notification.message} {/* Nội dung thông báo từ state notification.message */}
+                    {notification.message}
                 </Alert>
             </Snackbar>
             </Box>

@@ -121,10 +121,13 @@ interface ClassPerformanceSummary {
 
 
 const scoreTypes = [
-  { value: 'mid1',label: 'Giữa Kỳ 1'},
-  { value: 'final1',label: 'Cuối Kỳ 1'},
-  { value: 'mid2',label: 'Giữa Kỳ 2'},
-  { value: 'final2',label: 'Cuối Kỳ 2'},
+  { value: 'oral', label: 'Điểm miệng' },
+  { value: '15min', label: 'Điểm 15 phút' },
+  { value: '45min', label: 'Điểm 45 phút' },
+  { value: 'mid1', label: 'Giữa Kỳ 1' },
+  { value: 'final1', label: 'Cuối Kỳ 1' },
+  { value: 'mid2', label: 'Giữa Kỳ 2' },
+  { value: 'final2', label: 'Cuối Kỳ 2' },
 ];
 
 const calculateAverageAndCategory = (scores: ScoreData[]): { average: number | null; category: string } => {
@@ -217,6 +220,7 @@ const ListClass: React.FC = () => {
     const [loadingPerformanceSummary, setLoadingPerformanceSummary] = useState<boolean>(false);
     const [performanceSummaryError, setPerformanceSummaryError] = useState<string | null>(null);
 
+    const [selectedSemester, setSelectedSemester] = useState<string>('1');
 
     const fetchClasses = async () => {
         setLoading(true);
@@ -755,11 +759,33 @@ const ListClass: React.FC = () => {
             ) : null}
 
 
-            <Dialog open={openScoreDialog} onClose={handleCloseScoreDialog} maxWidth="md" fullWidth>
+            <Dialog open={openScoreDialog} onClose={handleCloseScoreDialog} maxWidth="lg" fullWidth>
                 <DialogTitle>
-                    Điểm số của học sinh: {currentStudentForScores?.name || ''}
-                    {(loadingScores || loadingSubjects) && <CircularProgress size={20} sx={{ ml: 2 }} />}
-                    {subjectError && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{subjectError}</Typography>}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                            Điểm số của học sinh: {currentStudentForScores?.name || ''}
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Button
+                                variant={selectedSemester === '1' ? 'contained' : 'outlined'}
+                                size="small"
+                                sx={{ mr: 1, minWidth: 90, bgcolor: selectedSemester === '1' ? '#7e57c2' : undefined, color: '#fff' }}
+                                onClick={() => setSelectedSemester('1')}
+                            >
+                                Học kỳ 1
+                            </Button>
+                            <Button
+                                variant={selectedSemester === '2' ? 'contained' : 'outlined'}
+                                size="small"
+                                sx={{ minWidth: 90, bgcolor: selectedSemester === '2' ? '#7e57c2' : undefined, color: '#fff' }}
+                                onClick={() => setSelectedSemester('2')}
+                            >
+                                Học kỳ 2
+                            </Button>
+                            {(loadingScores || loadingSubjects) && <CircularProgress size={20} sx={{ ml: 2 }} />}
+                            {subjectError && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{subjectError}</Typography>}
+                        </Box>
+                    </Box>
                 </DialogTitle>
                 <DialogContent>
                     <Box sx={{ mb: 2 }}>
@@ -780,26 +806,47 @@ const ListClass: React.FC = () => {
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell><strong>Môn học</strong></TableCell>
-                                        {scoreTypes.map(type => (
-                                            <TableCell key={type.value} align="right"><strong>{type.label}</strong></TableCell>
+                                        <TableCell align="center"><strong>Môn học</strong></TableCell>
+                                        {scoreTypes.filter(st =>
+                                            (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
+                                            (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
+                                        ).map(type => (
+                                            <TableCell key={type.value} align="center"><strong>{type.label}</strong></TableCell>
                                         ))}
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {Object.entries(scoresBySubjectForDisplay).map(([subjectName, scoresOfType]) => (
-                                        <TableRow key={subjectName}>
-                                            <TableCell>{subjectName}</TableCell>
-                                            {scoreTypes.map(type => {
-                                                const scoreEntry = scoresOfType[type.value];
-                                                return (
-                                                    <TableCell key={type.value} align="right">
-                                                        {scoreEntry ? scoreEntry.score : '-'}
-                                                    </TableCell>
-                                                );
-                                            })}
-                                        </TableRow>
-                                    ))}
+                                    {subjects.map(subject => {
+                                        const subjectName = subject.name;
+                                        return (
+                                            <TableRow key={subjectName}>
+                                                <TableCell align="center">{subjectName}</TableCell>
+                                                {scoreTypes.filter(st =>
+                                                    (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
+                                                    (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
+                                                ).map(type => {
+                                                    const allScores = scores.filter(score =>
+                                                        (score.subject_id === subject.id || score.subject_name === subjectName || score.subject === subjectName) &&
+                                                        score.type === type.value &&
+                                                        String(score.semester || '1') === selectedSemester
+                                                    );
+                                                    return (
+                                                        <TableCell key={type.value} align="center">
+                                                            {allScores.length > 0 ? (
+                                                                <Stack direction="column" spacing={0.5} justifyContent="center" alignItems="center">
+                                                                    {allScores.map((scoreEntry, idx) => (
+                                                                        <Typography key={scoreEntry.id || idx} variant="body2" sx={{ color: '#e0e0e0', textAlign: 'center' }}>{scoreEntry.score}</Typography>
+                                                                    ))}
+                                                                </Stack>
+                                                            ) : (
+                                                                <Typography variant="body2" sx={{ color: '#bdbdbd', textAlign: 'center' }}>---</Typography>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })}
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </TableContainer>
