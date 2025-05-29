@@ -6,7 +6,7 @@
 <div align="left" >
 <center>
       <a href="public/Logo-with-text.png" align="center">
-        <img src="public/Logo-with-text.png" alt="Logo" width="200" height="120">
+        <img src="public/Logo-with-text.png" alt="Logo" width="350" height="120">
       </a>    
 </center>
 <center>
