@@ -43,10 +43,16 @@ class LoginHistoryController extends Controller
             $query->whereDate('login_at', '<=', $request->date_to);
         }
 
-        $histories = $query->paginate(15);
-        $users = User::orderBy('name')->get();
+        $perPage = $request->input('per_page', 20);
+        $histories = $query->paginate($perPage);
 
-        return response()->json($histories);
+        return response()->json([
+            'data' => $histories->items(),
+            'current_page' => $histories->currentPage(),
+            'per_page' => $histories->perPage(),
+            'total' => $histories->total(),
+            'last_page' => $histories->lastPage(),
+        ]);
     }
 
     /**
@@ -55,7 +61,6 @@ class LoginHistoryController extends Controller
      */
     public function show(LoginHistory $loginHistory)
     {
-        // Đã xóa: $this->authorize('view', $loginHistory);
 
         $loginHistory->load('user');
 

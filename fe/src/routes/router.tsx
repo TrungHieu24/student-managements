@@ -103,10 +103,6 @@ const routes: RouteObject[] = [
   },
 ];
 
-const options: { basename: string } = {
-  basename: '/nickelfox',
-};
-
-const router: Partial<RouterProps> = createBrowserRouter(routes, options);
+const router: Partial<RouterProps> = createBrowserRouter(routes);
 
 export default router;

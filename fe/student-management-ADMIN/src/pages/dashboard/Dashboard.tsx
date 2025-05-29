@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios, { isAxiosError, AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import {
     Box,
     Typography,
@@ -131,6 +132,7 @@ const CustomAverageScoreLegend: React.FC<any> = ({ payload }) => {
 
 
 const Dashboard: React.FC = () => {
+    const { t } = useTranslation();
     const [stats, setStats] = useState<StatsData>({
         students: 0,
         teachers: 0,
@@ -246,7 +248,7 @@ const Dashboard: React.FC = () => {
                     return acc;
                 }, {});
                 const genderChartData = Object.entries(genderMap).map(([name, count]) => ({
-                    name: name as string,
+                    name: t(`genderType.${name === 'Nam' ? 'male' : name === 'Nữ' ? 'female' : 'other'}`),
                     value: count as number,
                 }));
                 setGenderData(genderChartData);
@@ -254,24 +256,28 @@ const Dashboard: React.FC = () => {
 
             if (performanceRes.data) {
                 const performanceBarData: PerformanceData[] = Object.entries(performanceRes.data).map(([category, count]) => ({
-                    category: category,
+                    category: t(`performanceCategory.${category}`),
                     studentCount: count as number,
                 }));
-                 const order = ['Giỏi', 'Khá', 'Trung bình', 'Yếu'];
-                 performanceBarData.sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
+                const order = ['Giỏi', 'Khá', 'Trung bình', 'Yếu'];
+                performanceBarData.sort((a, b) => {
+                    const indexA = order.findIndex(cat => t(`performanceCategory.${cat}`) === a.category);
+                    const indexB = order.findIndex(cat => t(`performanceCategory.${cat}`) === b.category);
+                    return indexA - indexB;
+                });
 
                 setPerformanceData(performanceBarData);
             }
 
             if (Array.isArray(averageScoresRes.data)) {
-                 const averageScoresBarData: AverageScoreData[] = averageScoresRes.data.map(item => {
-                     const avgScore = parseFloat(item.average_score as any);
-                     return {
-                         subjectName: item.subject_name,
-                         averageScore: !isNaN(avgScore) ? parseFloat(avgScore.toFixed(2)) : 0,
-                     };
-                 });
-                 setAverageScoresData(averageScoresBarData);
+                const averageScoresBarData: AverageScoreData[] = averageScoresRes.data.map((item: AverageScoreBySubjectResponse) => {
+                    const avgScore = parseFloat(item.average_score as any);
+                    return {
+                        subjectName: t(`subjectName.${item.subject_name}`),
+                        averageScore: !isNaN(avgScore) ? parseFloat(avgScore.toFixed(2)) : 0,
+                    };
+                });
+                setAverageScoresData(averageScoresBarData);
             }
 
         } catch (err: any) {
@@ -303,7 +309,7 @@ const Dashboard: React.FC = () => {
     return (
         <Box p={4} sx={{ bgcolor: '#21222d', color: '#ffffff', minHeight: '100vh' }}>
             <Typography variant="h4" gutterBottom sx={{ mb: 4, color: '#ffffff' }}>
-                Tổng quan hệ thống
+                {t('dashboard.title')}
             </Typography>
 
             {loading ? (
@@ -321,7 +327,7 @@ const Dashboard: React.FC = () => {
                                  {stats.students}
                              </Typography>
                              <Typography variant="subtitle1" sx={{ color: '#424242' }}>
-                                 Tổng số học sinh
+                                 {t('dashboard.total_students')}
                              </Typography>
                          </Paper>
                      </Grid>
@@ -333,7 +339,7 @@ const Dashboard: React.FC = () => {
                                 {stats.teachers}
                             </Typography>
                             <Typography variant="subtitle1" sx={{ color: '#424242' }}>
-                                Tổng số giáo viên
+                                {t('dashboard.total_teachers')}
                             </Typography>
                         </Paper>
                     </Grid>
@@ -345,7 +351,7 @@ const Dashboard: React.FC = () => {
                                 {stats.classes}
                             </Typography>
                             <Typography variant="subtitle1" sx={{ color: '#424242' }}>
-                                Số lượng lớp học
+                                {t('dashboard.total_classes')}
                             </Typography>
                         </Paper>
                     </Grid>
@@ -357,29 +363,49 @@ const Dashboard: React.FC = () => {
                                 {stats.subjects}
                             </Typography>
                             <Typography variant="subtitle1" sx={{ color: '#424242' }}>
-                                Tổng số môn học
+                                {t('dashboard.total_subjects')}
                             </Typography>
                         </Paper>
                     </Grid>
-                    
 
-                     <Grid item xs={2.4}>
-                         <Paper elevation={3} sx={{ p: 3, textAlign: 'center', borderRadius: '8px', bgcolor: '#E1F5FE', color: '#212121' }}>
-                             <StarHalfIcon sx={{ fontSize: 48, mb: 1 }} />
-                             <Typography variant="h6" component="div">
+                    <Grid item xs={2.4}>
+                        <Paper 
+                            elevation={3} 
+                            sx={{ 
+                                p: 2, 
+                                textAlign: 'center', 
+                                borderRadius: '8px', 
+                                bgcolor: '#E1F5FE', 
+                                color: '#212121',
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                minHeight: '140px'
+                            }}
+                        >
+                            <StarHalfIcon sx={{ fontSize: 40, mb: 1 }} />
+                            <Typography variant="h6" component="div" sx={{ mb: 1 }}>
                                 {stats.overallAverageScore !== null ? stats.overallAverageScore.toFixed(2) : 'N/A'}
-                             </Typography>
-                             <Typography variant="subtitle1" sx={{ color: '#424242' }}>
-                                 Điểm trung bình trường
-                             </Typography>
-                         </Paper>
-                     </Grid>
+                            </Typography>
+                            <Typography 
+                                variant="subtitle2" 
+                                sx={{ 
+                                    color: '#424242',
+                                    lineHeight: 1.2,
+                                    px: 1
+                                }}
+                            >
+                                {t('dashboard.school_average')}
+                            </Typography>
+                        </Paper>
+                    </Grid>
 
 
                     <Grid item xs={12} md={6}>
                         <Paper elevation={3} sx={{ p: 3, borderRadius: '8px', bgcolor: '#21222d', color: '#ffffff' }}>
                             <Typography variant="h6" gutterBottom sx={{ color: '#ffffff' }}>
-                                Số lượng học sinh theo lớp
+                                {t('dashboard.students_by_class')}
                             </Typography>
                             {studentsByClassData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={300}>
@@ -389,11 +415,11 @@ const Dashboard: React.FC = () => {
                                          <YAxis stroke="#e0e0e0" domain={[0, 50]} />
                                          <Tooltip cursor={{ fill: 'rgba(255,255,255,0.1)' }} contentStyle={{ backgroundColor: '#31323d', border: 'none', color: '#ffffff' }} />
                                          <Legend wrapperStyle={{ color: '#e0e0e0' }} />
-                                         <Bar dataKey="studentCount" fill="#8884d8" name="Số lượng học sinh" />
+                                         <Bar dataKey="studentCount" fill="#8884d8" name={t('dashboard.chart_labels.student_count')} />
                                      </BarChart>
                                  </ResponsiveContainer>
                              ) : (
-                                 !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>Không có dữ liệu học sinh theo lớp.</Typography>
+                                 !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>{t('dashboard.no_data.students_by_class')}</Typography>
                              )}
                          </Paper>
                     </Grid>
@@ -401,7 +427,7 @@ const Dashboard: React.FC = () => {
                     <Grid item xs={12} md={6}>
                         <Paper elevation={3} sx={{ p: 3, borderRadius: '8px', bgcolor: '#21222d', color: '#ffffff' }}>
                             <Typography variant="h6" gutterBottom sx={{ color: '#ffffff' }}>
-                                Phân bố giới tính
+                                {t('dashboard.gender_distribution')}
                             </Typography>
                             {genderData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={300}>
@@ -420,12 +446,12 @@ const Dashboard: React.FC = () => {
                                                 <Cell key={`cell-${index}`} fill={COLORS_PIE[index % COLORS_PIE.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip  contentStyle={{ backgroundColor: '#31323d', border: 'none', color: '#ffffff' }} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#31323d', border: 'none', color: '#ffffff' }} />
                                         <Legend wrapperStyle={{ color: '#e0e0e0' }} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             ) : (
-                                !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>Không có dữ liệu giới tính.</Typography>
+                                !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>{t('dashboard.no_data.gender')}</Typography>
                             )}
                         </Paper>
                     </Grid>
@@ -433,7 +459,7 @@ const Dashboard: React.FC = () => {
                     <Grid item xs={12} md={6}>
                          <Paper elevation={3} sx={{ p: 3, borderRadius: '8px', bgcolor: '#21222d', color: '#ffffff' }}>
                              <Typography variant="h6" gutterBottom sx={{ color: '#ffffff' }}>
-                                 Phân loại học lực
+                                 {t('dashboard.academic_performance')}
                              </Typography>
                              {performanceData.length > 0 ? (
                                  <ResponsiveContainer width="100%" height={300}>
@@ -443,11 +469,11 @@ const Dashboard: React.FC = () => {
                                          <YAxis stroke="#e0e0e0" domain={[0, 300]} />
                                          <Tooltip cursor={{ fill: 'rgba(255,255,255,0.1)' }} contentStyle={{ backgroundColor: '#31323d', border: 'none', color: '#ffffff' }} />
                                          <Legend wrapperStyle={{ color: '#e0e0e0' }} />
-                                         <Bar dataKey="studentCount" fill="#ffc658" name="Số lượng học sinh" />
+                                         <Bar dataKey="studentCount" fill="#ffc658" name={t('dashboard.chart_labels.student_count')} />
                                      </BarChart>
                                  </ResponsiveContainer>
                              ) : (
-                                 !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>Không có dữ liệu phân loại học lực.</Typography>
+                                 !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>{t('dashboard.no_data.performance')}</Typography>
                              )}
                          </Paper>
                     </Grid>
@@ -455,7 +481,7 @@ const Dashboard: React.FC = () => {
                     <Grid item xs={12} md={6}>
                          <Paper elevation={3} sx={{ p: 3, borderRadius: '8px', bgcolor: '#21222d', color: '#ffffff' }}>
                              <Typography variant="h6" gutterBottom sx={{ color: '#ffffff' }}>
-                                 Điểm trung bình theo môn
+                                 {t('dashboard.subject_averages')}
                              </Typography>
                              {averageScoresData.length > 0 ? (
                                  <ResponsiveContainer width="100%" height={300}>
@@ -465,7 +491,7 @@ const Dashboard: React.FC = () => {
                                          <YAxis stroke="#e0e0e0" domain={[0, 10]} />
                                          <Tooltip cursor={{ fill: 'rgba(255,255,255,0.1)' }} contentStyle={{ backgroundColor: '#31323d', border: 'none', color: '#ffffff' }} />
                                          <Legend content={<CustomAverageScoreLegend />} wrapperStyle={{ paddingTop: '10px' }} />
-                                         <Bar dataKey="averageScore" fill="#fffff" name="Điểm trung bình">
+                                         <Bar dataKey="averageScore" fill="#fffff" name={t('dashboard.chart_labels.average_score')}>
                                              {averageScoresData.map((entry, index) => (
                                                  <Cell key={`cell-${index}`} fill={getSubjectColor(entry.subjectName, index)} />
                                              ))}
@@ -473,7 +499,7 @@ const Dashboard: React.FC = () => {
                                      </BarChart>
                                  </ResponsiveContainer>
                              ) : (
-                                 !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>Không có dữ liệu điểm trung bình theo môn.</Typography>
+                                 !loading && <Typography variant="body2" color="text.secondary" sx={{ color: '#e0e0e0' }}>{t('dashboard.no_data.subject_averages')}</Typography>
                              )}
                          </Paper>
                     </Grid>
