@@ -786,7 +786,7 @@ const ListClass: React.FC = () => {
                                 sx={{ mr: 1, minWidth: 90, bgcolor: selectedSemester === '1' ? '#7e57c2' : undefined, color: '#fff' }}
                                 onClick={() => setSelectedSemester('1')}
                             >
-                                {t('Semester 1')}
+                                {t('semester_1')}
                             </Button>
                             <Button
                                 variant={selectedSemester === '2' ? 'contained' : 'outlined'}
@@ -794,7 +794,7 @@ const ListClass: React.FC = () => {
                                 sx={{ minWidth: 90, bgcolor: selectedSemester === '2' ? '#7e57c2' : undefined, color: '#fff' }}
                                 onClick={() => setSelectedSemester('2')}
                             >
-                                {t('Semester 2')}
+                                {t('semester_2')}
                             </Button>
                             {(loadingScores || loadingSubjects) && <CircularProgress size={20} sx={{ ml: 2 }} />}
                             {subjectError && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{subjectError}</Typography>}
