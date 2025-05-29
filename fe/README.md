@@ -6,43 +6,13 @@
 <div align="left" >
 <center>
       <a href="public/LOGO.png" align="center">
-        <img src="public/LOGO.png" alt="Logo" width="100" height="70">
+        <img src="public/LOGO.png" alt="Logo" width="200" height="120">
       </a>    
 </center>
 <center>
        <h1 style="display: inline-block; margin-left: 10px;">Student Management Dashboard</h1>
 </center>
 </div>
-<br />
-
-<br />
-<br />
-<!-- TABLE OF CONTENTS -->
-<details  align="left">
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>    
-    <li><a href="#license">License</a></li>    
-    <li><a href="#license">Acknowledgments</a></li>
-  </ol>
-</details>
-<br />
-<br />
-
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### <h3>Built With :</h3>
 
