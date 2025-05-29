@@ -6,11 +6,11 @@
 <div align="left" >
 <center>
       <a href="public/LOGO.png" align="center">
-        <img src="public/LOGO.png" alt="Logo" width="50" height="50">
+        <img src="public/LOGO.png" alt="Logo" width="100" height="70">
       </a>    
 </center>
 <center>
-       <h1 style="display: inline-block; margin-left: 10px;">Nickelfox Sales Management Dashboard</h1>
+       <h1 style="display: inline-block; margin-left: 10px;">Student Management Dashboard</h1>
 </center>
 </div>
 <br />
@@ -40,12 +40,7 @@
 </details>
 <br />
 <br />
-<!-- ABOUT THE PROJECT -->
 
-## About The Project
-
-[![Product Name Screen Shot][product-screenshot]](public/homepage.png)
-[![Product Name Screen Shot][product-screenshot-2]](public/homepage_2.png)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -74,11 +69,11 @@ Follow these steps to get your project up and running:
 
 1. **Clone the repository**
    ```sh
-   git clone https://github.com/themewagon/nickelfox-sales-management.git
+   git clone https://github.com/TrungHieu24/student-managements
    ```
 2. **Navigate to the project directory**
    ```sh
-   cd nickelfox-sales-management
+   cd student-managements
    ```
 3. **Install dependencies**
    ```sh
@@ -88,23 +83,10 @@ Follow these steps to get your project up and running:
    ```sh
    npm run dev
    ```
-   Open your web browser and navigate to http://localhost:3000/nickelfox-sales-management to view this application.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- LICENSE -->
-
-## License
-
-Distributed under the MIT License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<a name="readme-top">
-<div align="">
-<a align="center" href="https://github.com/themewagon/elegent/graphs/contributors">
-<img src="https://contrib.rocks/image?repo=themewagon/elegent" /><br />
-</a></a></div>
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
