@@ -5,49 +5,14 @@
 <!-- PROJECT LOGO -->
 <div align="left" >
 <center>
-      <a href="public/LOGO.png" align="center">
-        <img src="public/LOGO.png" alt="Logo" width="50" height="50">
+      <a href="public/Logo-with-text.png" align="center">
+        <img src="public/Logo-with-text.png" alt="Logo" width="350" height="120">
       </a>    
 </center>
 <center>
-       <h1 style="display: inline-block; margin-left: 10px;">Nickelfox Sales Management Dashboard</h1>
+       <h1 style="display: inline-block; margin-left: 10px;">Student Management Dashboard</h1>
 </center>
 </div>
-<br />
-
-<br />
-<br />
-<!-- TABLE OF CONTENTS -->
-<details  align="left">
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>    
-    <li><a href="#license">License</a></li>    
-    <li><a href="#license">Acknowledgments</a></li>
-  </ol>
-</details>
-<br />
-<br />
-<!-- ABOUT THE PROJECT -->
-
-## About The Project
-
-[![Product Name Screen Shot][product-screenshot]](public/homepage.png)
-[![Product Name Screen Shot][product-screenshot-2]](public/homepage_2.png)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### <h3>Built With :</h3>
 
@@ -74,11 +39,11 @@ Follow these steps to get your project up and running:
 
 1. **Clone the repository**
    ```sh
-   git clone https://github.com/themewagon/nickelfox-sales-management.git
+   git clone https://github.com/TrungHieu24/student-managements
    ```
 2. **Navigate to the project directory**
    ```sh
-   cd nickelfox-sales-management
+   cd student-managements/fe
    ```
 3. **Install dependencies**
    ```sh
@@ -88,23 +53,10 @@ Follow these steps to get your project up and running:
    ```sh
    npm run dev
    ```
-   Open your web browser and navigate to http://localhost:3000/nickelfox-sales-management to view this application.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- LICENSE -->
-
-## License
-
-Distributed under the MIT License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<a name="readme-top">
-<div align="">
-<a align="center" href="https://github.com/themewagon/elegent/graphs/contributors">
-<img src="https://contrib.rocks/image?repo=themewagon/elegent" /><br />
-</a></a></div>
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
