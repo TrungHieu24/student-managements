@@ -9,10 +9,11 @@ import {
     ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import { Edit, Delete, Add as AddIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import { Edit, Delete, Add as AddIcon, ExpandMore as ExpandMoreIcon, Lock as LockIcon } from '@mui/icons-material';
 import axios, { isAxiosError, AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 interface TeachingAssignment {
     assignment_id: number;
@@ -144,6 +145,7 @@ const ClassesTeaching: React.FC = () => {
         open: boolean;
         message: string;
         severity: 'success' | 'error';
+        duration?: number;
     }>({
         open: false,
         message: '',
@@ -154,7 +156,7 @@ const ClassesTeaching: React.FC = () => {
     const [scores, setScores] = useState<Score[]>([]);
     const [loadingScores, setLoadingScores] = useState<boolean>(false);
     const [scoreError, setScoreError] = useState<string | null>(null);
-    const [selectedSemester, setSelectedSemester] = useState<string>('1'); 
+    const [selectedSemester, setSelectedSemester] = useState<'1' | '2'>('1');
 
     const [openAddScoreDialog, setOpenAddScoreDialog] = useState(false);
     const [newScoreData, setNewScoreData] = useState({
@@ -317,7 +319,7 @@ const ClassesTeaching: React.FC = () => {
         }>;
     }>);
 
-    const classesArray = Object.values(groupedByClass);
+    const classesArray = Object.values(groupedByClass).sort((a, b) => a.grade - b.grade);
 
     const scoreTypes: ScoreType[] = useMemo(() => [
         { value: 'oral', label: 'Điểm miệng' },
@@ -366,7 +368,22 @@ const ClassesTeaching: React.FC = () => {
         setCurrentStudentForScores(student);
         setScores([]);
         setScoreError(null);
-        setSelectedSemester('1');
+        
+        // Find available semesters for this student's class
+        const studentClassId = student.class_id;
+        const availableSemesters = new Set<number>();
+        
+        teachingAssignments
+            .filter(assignment => assignment.class_id === studentClassId)
+            .forEach(assignment => {
+                availableSemesters.add(assignment.semester);
+            });
+        
+        // Set initial semester to the first available one, or '1' if none available
+        const initialSemester = availableSemesters.has(1) ? '1' : 
+                              availableSemesters.has(2) ? '2' : '1';
+        setSelectedSemester(initialSemester as '1' | '2');
+        
         fetchStudentScores(student.id);
         const currentClassSubjects = teachingAssignments
             .filter(assignment => assignment.class_id === student.class_id)
@@ -382,7 +399,7 @@ const ClassesTeaching: React.FC = () => {
         setScores([]);
         setScoreError(null);
         setSubjects([]);
-        setSelectedSemester('1'); 
+        setSelectedSemester('1');
     };
 
     const handleOpenAddScoreDialog = () => {
@@ -395,7 +412,7 @@ const ClassesTeaching: React.FC = () => {
         setOpenAddScoreDialog(false);
     };
 
-    const handleNewScoreInputChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    const handleNewScoreInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>) => {
         const { name, value } = e.target;
         setNewScoreData(prev => ({ ...prev, [name as string]: value }));
     };
@@ -433,7 +450,12 @@ const ClassesTeaching: React.FC = () => {
             await axios.post(`${API_BASE_URL}/scores`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setNotification({ open: true, message: `Thêm điểm thành công cho ${currentStudentForScores.name}.`, severity: 'success' });
+            setNotification({ 
+                open: true, 
+                message: `Thêm điểm thành công cho ${currentStudentForScores.name}.`, 
+                severity: 'success',
+                duration: 1500
+            });
             handleCloseAddScoreDialog();
             fetchStudentScores(currentStudentForScores.id);
         } catch (err: any) {
@@ -442,14 +464,37 @@ const ClassesTeaching: React.FC = () => {
                 if (err.response.data && err.response.data.errors) {
                     setAddScoreError("Lỗi nhập liệu: " + Object.values(err.response.data.errors).join(', '));
                 } else if (err.response.data && err.response.data.message) {
-                    setAddScoreError("Lỗi: " + err.response.data.message);
+                    let errorMessage = err.response.data.message;
+                    const scoreTypeMap: { [key: string]: string } = {
+                        'oral': 'miệng',
+                        '15min': '15 phút',
+                        '45min': '45 phút',
+                        'mid1': 'giữa kỳ 1',
+                        'final1': 'cuối kỳ 1',
+                        'mid2': 'giữa kỳ 2',
+                        'final2': 'cuối kỳ 2'
+                    };
+                    
+                    Object.entries(scoreTypeMap).forEach(([code, name]) => {
+                        errorMessage = errorMessage.replace(code, name);
+                    });
+                    
+                    // Bỏ chữ "loại" trong thông báo lỗi
+                    errorMessage = errorMessage.replace('loại ', '');
+                    
+                    setAddScoreError("Lỗi: " + errorMessage);
                 } else {
                     setAddScoreError("Lỗi khi thêm điểm.");
                 }
             } else {
                 setAddScoreError("Lỗi không xác định khi thêm điểm.");
             }
-            setNotification({ open: true, message: `Thêm điểm thất bại: ${addScoreError}`, severity: 'error' });
+            setNotification({ 
+                open: true, 
+                message: `Thêm điểm thất bại: ${addScoreError}`, 
+                severity: 'error',
+                duration: 1500
+            });
         } finally {
             setAddingScore(false);
         }
@@ -494,7 +539,12 @@ const ClassesTeaching: React.FC = () => {
             await axios.put(`${API_BASE_URL}/scores/${scoreToEdit.id}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setNotification({ open: true, message: `Cập nhật điểm thành công cho ${currentStudentForScores?.name}.`, severity: 'success' });
+            setNotification({ 
+                open: true, 
+                message: `Cập nhật điểm thành công cho ${currentStudentForScores?.name}.`, 
+                severity: 'success',
+                duration: 1500
+            });
             handleCloseEditScoreDialog();
             if (currentStudentForScores) {
                 fetchStudentScores(currentStudentForScores.id);
@@ -512,7 +562,12 @@ const ClassesTeaching: React.FC = () => {
             } else {
                 setEditScoreError("Lỗi không xác định khi cập nhật điểm.");
             }
-            setNotification({ open: true, message: `Cập nhật điểm thất bại: ${editScoreError}`, severity: 'error' });
+            setNotification({ 
+                open: true, 
+                message: `Cập nhật điểm thất bại: ${editScoreError}`, 
+                severity: 'error',
+                duration: 8000
+            });
         } finally {
             setEditingScore(false);
         }
@@ -543,7 +598,12 @@ const ClassesTeaching: React.FC = () => {
             await axios.delete(`${API_BASE_URL}/scores/${scoreToDeleteId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setNotification({ open: true, message: `Xóa điểm thành công cho ${currentStudentForScores?.name}.`, severity: 'success' });
+            setNotification({ 
+                open: true, 
+                message: `Xóa điểm thành công cho ${currentStudentForScores?.name}.`, 
+                severity: 'success',
+                duration: 300
+            });
             handleCloseDeleteScoreConfirm();
             fetchStudentScores(currentStudentForScores.id); 
         } catch (err: any) {
@@ -606,6 +666,23 @@ const ClassesTeaching: React.FC = () => {
         return []; 
     }, [selectedSemester, scoreTypes]);
 
+    const isSemesterAvailable = useMemo(() => {
+        if (!currentStudentForScores) return { '1': false, '2': false };
+        
+        const studentClassId = currentStudentForScores.class_id;
+        const availableSemesters = new Set<number>();
+        
+        teachingAssignments
+            .filter(assignment => assignment.class_id === studentClassId)
+            .forEach(assignment => {
+                availableSemesters.add(assignment.semester);
+            });
+        
+        return {
+            '1': availableSemesters.has(1),
+            '2': availableSemesters.has(2)
+        } as const;
+    }, [currentStudentForScores, teachingAssignments]);
 
     if (loadingClasses) {
         return (
@@ -725,7 +802,7 @@ const ClassesTeaching: React.FC = () => {
                             variant="contained"
                             startIcon={<AddIcon />}
                             onClick={handleOpenAddScoreDialog}
-                            disabled={currentStudentForScores === null}
+                            disabled={currentStudentForScores === null || !isSemesterAvailable[selectedSemester as '1' | '2']}
                         >
                             Thêm Điểm
                         </Button>
@@ -733,16 +810,79 @@ const ClassesTeaching: React.FC = () => {
                             value={selectedSemester}
                             exclusive
                             onChange={(event, newSemester) => {
-                                if (newSemester !== null) {
-                                    setSelectedSemester(newSemester);
+                                if (newSemester !== null && isSemesterAvailable[newSemester as '1' | '2']) {
+                                    setSelectedSemester(newSemester as '1' | '2');
                                 }
                             }}
                             aria-label="chọn học kỳ"
+                            sx={{
+                                '& .MuiToggleButton-root': {
+                                    margin: '0 4px',
+                                    borderRadius: '8px !important',
+                                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                                    '&:first-of-type': {
+                                        marginLeft: 0
+                                    },
+                                    '&:last-of-type': {
+                                        marginRight: 0
+                                    }
+                                } as any
+                            }}
                         >
-                            <ToggleButton sx={{color: "#ffff"}} value="1" aria-label="học kỳ 1">
+                            <ToggleButton 
+                                value="1" 
+                                aria-label="học kỳ 1"
+                                disabled={!isSemesterAvailable['1']}
+                                sx={{ 
+                                    color: isSemesterAvailable['1'] ? "#ffff" : "rgba(255, 255, 255, 0.5)",
+                                    minWidth: '120px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    padding: '8px 16px',
+                                    '&.Mui-selected': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                        color: '#ffff',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                                        }
+                                    },
+                                    '&.Mui-disabled': {
+                                        color: 'rgba(255, 255, 255, 0.5)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                        borderColor: 'rgba(255, 255, 255, 0.12)'
+                                    }
+                                }}
+                            >
+                                {!isSemesterAvailable['1'] && <LockIcon fontSize="small" />}
                                 Học kỳ 1
                             </ToggleButton>
-                            <ToggleButton sx={{color: "#ffff"}} value="2" aria-label="học kỳ 2">
+                            <ToggleButton 
+                                value="2" 
+                                aria-label="học kỳ 2"
+                                disabled={!isSemesterAvailable['2']}
+                                sx={{ 
+                                    color: isSemesterAvailable['2'] ? "#ffff" : "rgba(255, 255, 255, 0.5)",
+                                    minWidth: '120px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    padding: '8px 16px',
+                                    '&.Mui-selected': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                        color: '#ffff',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                                        }
+                                    },
+                                    '&.Mui-disabled': {
+                                        color: 'rgba(255, 255, 255, 0.5)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                        borderColor: 'rgba(255, 255, 255, 0.12)'
+                                    }
+                                }}
+                            >
+                                {!isSemesterAvailable['2'] && <LockIcon fontSize="small" />}
                                 Học kỳ 2
                             </ToggleButton>
                         </ToggleButtonGroup>

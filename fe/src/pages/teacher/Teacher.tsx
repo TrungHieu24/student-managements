@@ -37,6 +37,7 @@ import {
   FormHelperText,
   OutlinedInput,
   Grid,
+  ListSubheader,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EditIcon from '@mui/icons-material/Edit';
@@ -1245,11 +1246,19 @@ const openEditBasicDialog = (teacher: Teacher) => {
                           <MenuItem value="">
                             <em>{t('select_class')}</em>
                           </MenuItem>
-                          {classes.map((cls) => (
-                            <MenuItem key={cls.id} value={cls.id}>
-                              {`${cls.name} (${t('grade')} ${cls.grade})`}
-                            </MenuItem>
-                          ))}
+                          {Array.from(new Set(classes.map(cls => cls.grade))).sort().map(grade => [
+                            <ListSubheader key={`grade-${grade}`}>
+                              {t('grade')} {grade}
+                            </ListSubheader>,
+                            ...classes
+                              .filter(cls => cls.grade === grade)
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map(cls => (
+                                <MenuItem key={cls.id} value={cls.id}>
+                                  {cls.name}
+                                </MenuItem>
+                              ))
+                          ])}
                         </Select>
 
                         {assignmentFormErrors[index]?.class_id && (
@@ -1583,11 +1592,19 @@ const openEditBasicDialog = (teacher: Teacher) => {
                         <MenuItem value="">
                           <em>{t('select_class')}</em>
                         </MenuItem>
-                        {classes.map((cls) => (
-                          <MenuItem key={cls.id} value={cls.id}>
-                            {`${cls.name} (${t('grade')} ${cls.grade})`}
-                          </MenuItem>
-                        ))}
+                        {Array.from(new Set(classes.map(cls => cls.grade))).sort().map(grade => [
+                          <ListSubheader key={`grade-${grade}`}>
+                            {t('grade')} {grade}
+                          </ListSubheader>,
+                          ...classes
+                            .filter(cls => cls.grade === grade)
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map(cls => (
+                              <MenuItem key={cls.id} value={cls.id}>
+                                {cls.name}
+                              </MenuItem>
+                            ))
+                        ])}
                       </Select>
 
                       {assignmentFormErrors[index]?.class_id && (
