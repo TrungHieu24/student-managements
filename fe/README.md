@@ -43,7 +43,7 @@ Follow these steps to get your project up and running:
    ```
 2. **Navigate to the project directory**
    ```sh
-   cd student-managements
+   cd student-managements/fe
    ```
 3. **Install dependencies**
    ```sh
