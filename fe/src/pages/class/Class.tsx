@@ -37,6 +37,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/vi';
+import { useTranslation } from 'react-i18next';
 
 interface ClassData {
   id: string;
@@ -91,6 +92,7 @@ interface DeleteClassResponse {
 
 
 const Class: React.FC = () => {
+  const { t } = useTranslation();
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -562,7 +564,6 @@ const Class: React.FC = () => {
       return isNaN(startYearNumber) ? '' : String(startYearNumber + 3);
   }, [newClassStartYearString]);
 
-  // Lấy đối tượng Dayjs cho ngày đầu tiên của năm hiện tại
   const currentYearStart = useMemo(() => dayjs().startOf('year'), []);
 
 
@@ -570,14 +571,14 @@ const Class: React.FC = () => {
     return (
       <Box p={3}>
         <Alert severity="error">
-          Bạn cần đăng nhập để xem danh sách lớp học.
+          {t('needLoginToViewClassList')}
           <Button
             color="inherit"
             size="small"
             onClick={() => window.location.href = '/login'}
             sx={{ ml: 2 }}
           >
-            Đăng nhập
+            {t('login')}
           </Button>
         </Alert>
       </Box>
@@ -585,12 +586,10 @@ const Class: React.FC = () => {
   }
 
   return (
-      // Bọc toàn bộ component bằng LocalizationProvider
-      // Tốt nhất là bọc ở component gốc của ứng dụng (ví dụ: App.tsx)
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
     <Box p={3}>
       <Typography variant="h5" gutterBottom>
-        Danh sách lớp học
+        {t('classListTitle')}
       </Typography>
 
       {loading ? (
@@ -601,7 +600,7 @@ const Class: React.FC = () => {
         <Paper sx={{ p: 2, bgcolor: '#fff4f4' }}>
           <Typography color="error">{error}</Typography>
           <Button onClick={fetchClasses} sx={{ mt: 1 }} variant="outlined">
-            Thử lại
+            {t('retry')}
           </Button>
         </Paper>
       ) : (
@@ -623,7 +622,7 @@ const Class: React.FC = () => {
               sx={{ flexGrow: 1 }}
             >
               {gradesList.map((grade, index) => (
-                <Tab label={`Khối ${grade}`} key={index} />
+                <Tab label={t('gradeTab', { grade })} key={index} />
               ))}
             </Tabs>
 
@@ -634,7 +633,7 @@ const Class: React.FC = () => {
               onClick={handleOpenAddDialog}
               sx={{ ml: 2 }}
             >
-              Thêm lớp mới
+              {t('addNewClass')}
             </Button>
           </Box>
 
@@ -645,12 +644,12 @@ const Class: React.FC = () => {
                      <Table>
                        <TableHead>
                          <TableRow>
-                            <TableCell><b>Mã Lớp</b></TableCell>
-                            <TableCell><b>Tên Lớp</b></TableCell>
-                            <TableCell><b>Khối</b></TableCell>
-                            <TableCell><b>Niên khóa</b></TableCell>
-                            <TableCell><b>Giáo viên chủ nhiệm</b></TableCell>
-                            <TableCell align="center"><b>Tuỳ Chọn</b></TableCell>
+                            <TableCell><b>{t('classId')}</b></TableCell>
+                            <TableCell><b>{t('className')}</b></TableCell>
+                            <TableCell><b>{t('grade')}</b></TableCell>
+                            <TableCell><b>{t('schoolYear')}</b></TableCell>
+                            <TableCell><b>{t('homeroomTeacher')}</b></TableCell>
+                            <TableCell align="center"><b>{t('actions')}</b></TableCell>
                          </TableRow>
                        </TableHead>
                        <TableBody>
@@ -662,7 +661,7 @@ const Class: React.FC = () => {
                                  <TableCell>{row.name}</TableCell>
                                  <TableCell>{row.grade}</TableCell>
                                  <TableCell>{row.school_year}</TableCell>
-                                 <TableCell>{row.teacher_name || 'Chưa phân công'}</TableCell>
+                                 <TableCell>{row.teacher_name || t('notAssigned')}</TableCell>
                                  <TableCell align="center">
                                     <IconButton color="primary" onClick={() => handleEdit(row)}>
                                        <EditIcon />
@@ -676,7 +675,7 @@ const Class: React.FC = () => {
                          {filteredClasses.filter(c => c.grade === grade).length === 0 && (
                             <TableRow>
                                <TableCell colSpan={6} align="center">
-                                  Chưa có lớp nào trong khối {grade}.
+                                  {t('noClassInGrade', { grade })}
                                </TableCell>
                             </TableRow>
                          )}
@@ -687,7 +686,7 @@ const Class: React.FC = () => {
                ))
            ) : (
               <Box sx={{ p: 3, textAlign: 'center' }}>
-                 <Typography variant="body1">Chưa có dữ liệu lớp học nào.</Typography>
+                 <Typography variant="body1">{t('noClassData')}</Typography>
               </Box>
            )}
 
@@ -701,7 +700,7 @@ const Class: React.FC = () => {
           <TextField
             autoFocus
             margin="dense"
-            label="Tên lớp"
+            label={t('className')}
             fullWidth
             variant="outlined"
             value={editName}
@@ -709,7 +708,7 @@ const Class: React.FC = () => {
           />
           <TextField
             margin="dense"
-            label="Khối"
+            label={t('grade')}
             fullWidth
             variant="outlined"
             value={editGrade}
@@ -721,7 +720,7 @@ const Class: React.FC = () => {
 
            <DatePicker
                views={['year']}
-               label="Năm bắt đầu"
+               label={t('startYear')}
                value={editStartYearDate}
                onChange={(newValue) => setEditStartYearDate(newValue)}
                slotProps={{ textField: { fullWidth: true, margin: 'dense', variant: 'outlined' } }}
@@ -730,7 +729,7 @@ const Class: React.FC = () => {
 
            <TextField
             margin="dense"
-            label="Năm kết thúc"
+            label={t('endYear')}
             fullWidth
             variant="outlined"
             value={editEndYear}
@@ -742,15 +741,15 @@ const Class: React.FC = () => {
 
 
           <FormControl fullWidth margin="dense">
-            <InputLabel id="edit-teacher-label">Giáo viên chủ nhiệm</InputLabel>
+            <InputLabel id="edit-teacher-label">{t('homeroomTeacher')}</InputLabel>
             <Select
               labelId="edit-teacher-label"
               value={editTeacherId}
-              label="Giáo viên chủ nhiệm"
+              label={t('homeroomTeacher')}
               onChange={handleTeacherChange}
             >
               <MenuItem value="">
-                <em>Không chọn</em>
+                <em>{t('noSelect')}</em>
               </MenuItem>
               {availableTeachers.map((teacher) => (
                 <MenuItem value={teacher.id} key={teacher.id}>
@@ -767,19 +766,19 @@ const Class: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEditDialog}>Hủy</Button>
-          <Button onClick={handleSaveEdit} variant="contained" color="primary">Lưu</Button>
+          <Button onClick={handleCloseEditDialog}>{t('cancel')}</Button>
+          <Button onClick={handleSaveEdit} variant="contained" color="primary">{t('save')}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog Thêm lớp mới */}
       <Dialog open={addDialogOpen} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Thêm lớp mới</DialogTitle>
+        <DialogTitle>{t('addNewClass')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Tên lớp"
+            label={t('className')}
             fullWidth
             variant="outlined"
             value={newClassName}
@@ -787,7 +786,7 @@ const Class: React.FC = () => {
           />
           <TextField
             margin="dense"
-            label="Khối"
+            label={t('grade')}
             fullWidth
             variant="outlined"
             value={newClassGrade}
@@ -798,7 +797,7 @@ const Class: React.FC = () => {
           />
            <DatePicker
                views={['year']}
-               label="Năm bắt đầu"
+               label={t('startYear')}
                value={newClassStartYearDate}
                onChange={(newValue) => setNewClassStartYearDate(newValue)}
                slotProps={{ textField: { fullWidth: true, margin: 'dense', variant: 'outlined' } }}
@@ -806,7 +805,7 @@ const Class: React.FC = () => {
            />
            <TextField
             margin="dense"
-            label="Năm kết thúc"
+            label={t('endYear')}
             fullWidth
             variant="outlined"
             value={newClassEndYear}
@@ -816,15 +815,15 @@ const Class: React.FC = () => {
             }}
           />
           <FormControl fullWidth margin="dense">
-            <InputLabel id="new-teacher-label">Giáo viên chủ nhiệm</InputLabel>
+            <InputLabel id="new-teacher-label">{t('homeroomTeacher')}</InputLabel>
             <Select
               labelId="new-teacher-label"
               value={newClassTeacherId}
-              label="Giáo viên chủ nhiệm"
+              label={t('homeroomTeacher')}
               onChange={handleNewTeacherChange}
             >
               <MenuItem value="">
-                <em>Không chọn</em>
+                <em>{t('noSelect')}</em>
               </MenuItem>
               {availableTeachers.map((teacher) => (
                 <MenuItem value={teacher.id} key={teacher.id}>
@@ -841,8 +840,8 @@ const Class: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog}>Hủy</Button>
-          <Button onClick={handleAddClass} variant="contained" color="primary">Thêm lớp</Button>
+          <Button onClick={handleCloseAddDialog}>{t('cancel')}</Button>
+          <Button onClick={handleAddClass} variant="contained" color="primary">{t('add')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -850,16 +849,16 @@ const Class: React.FC = () => {
         open={showDeleteConfirmDialog}
         onClose={handleCloseDeleteConfirmDialog}
       >
-        <DialogTitle>Xác nhận xóa lớp</DialogTitle>
+        <DialogTitle>{t('deleteClassTitle')}</DialogTitle>
         <DialogContent>
           <Typography>
-            {`Bạn có chắc chắn muốn xóa lớp ${classToDeleteName}?`}
+            {t('deleteClassConfirmation', { className: classToDeleteName })}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteConfirmDialog}>Hủy</Button>
+          <Button onClick={handleCloseDeleteConfirmDialog}>{t('cancel')}</Button>
           <Button onClick={confirmDeletion} color="error" variant="contained" disabled={deleteLoading}>
-               {deleteLoading ? <CircularProgress size={24} /> : 'Xóa'}
+               {deleteLoading ? <CircularProgress size={24} /> : t('delete')}
           </Button>
         </DialogActions>
       </Dialog>

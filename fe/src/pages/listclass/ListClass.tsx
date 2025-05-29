@@ -30,6 +30,7 @@ import {
 import SchoolIcon from '@mui/icons-material/School';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { useTranslation } from 'react-i18next';
 
 interface TeacherDataNested {
     id: number;
@@ -191,8 +192,21 @@ const sortVietnameseNames = (a: Student, b: Student): number => {
     return firstNameA.localeCompare(firstNameB, 'vi', { sensitivity: 'base' });
 };
 
+const getGenderKey = (gender: string | null): string => {
+    if (!gender) return 'other';
+    const genderMap: { [key: string]: string } = {
+        'Nam': 'male',
+        'Nữ': 'female',
+        'Male': 'male',
+        'Female': 'female',
+        'Other': 'other',
+        'Khác': 'other'
+    };
+    return genderMap[gender] || 'other';
+};
 
 const ListClass: React.FC = () => {
+    const { t } = useTranslation();
     const [classesByGrade, setClassesByGrade] = useState<ClassesByGrade>({});
     const [selectedClass, setSelectedClass] = useState<ClassWithStudents | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -521,7 +535,7 @@ const ListClass: React.FC = () => {
     return (
         <Box p={3}>
             <Typography variant="h5" gutterBottom>
-                Danh sách khối lớp
+                {t('listClass')}
             </Typography>
 
             {loading ? (
@@ -558,7 +572,7 @@ const ListClass: React.FC = () => {
                                                 mb: 1,
                                             }}
                                         >
-                                            Khối lớp {gradeNumber}
+                                            {t('gradeTab', { grade: gradeNumber })}
                                         </Typography>
                                         <List dense sx={{ flexGrow: 1, overflow: 'auto' }}>
                                             {classes.map(cls => (
@@ -593,7 +607,7 @@ const ListClass: React.FC = () => {
                     ) : (
                         <Grid item xs={12}>
                             <Typography variant="body1" color="text.secondary" align="center">
-                                Không có dữ liệu lớp học.
+                                {t('noClassData')}
                             </Typography>
                         </Grid>
                     )}
@@ -610,24 +624,24 @@ const ListClass: React.FC = () => {
                         <Box>
                         <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                             <Box>
-                                Thông tin lớp {selectedClass.name} (Khối {selectedClass.grade})
+                                {t('Class Info', { className: selectedClass.name, grade: selectedClass.grade })}
                             </Box>
                             <Box>{selectedClass.school_year}</Box>
                         </Typography>
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
                                      <Typography variant="body1" sx={{ color: '#e0e0e0' }}>
-                                         <strong>ID Lớp:</strong> {selectedClass.id}
+                                         <strong>{t('classId')}:</strong> {selectedClass.id}
                                      </Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                      <Typography variant="body1" sx={{ color: '#e0e0e0' }}>
-                                         <strong>Khối:</strong> {selectedClass.grade}
+                                         <strong>{t('grade')}:</strong> {selectedClass.grade}
                                      </Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                      <Typography variant="body1" sx={{ color: '#e0e0e0' }}>
-                                         <strong>Giáo viên chủ nhiệm:</strong> {selectedClass.teacher?.name || 'Chưa phân công'}
+                                         <strong>{t('homeroomTeacher')}:</strong> {selectedClass.teacher?.name || t('notAssigned')}
                                      </Typography>
                                 </Grid>
                             </Grid>
@@ -635,7 +649,7 @@ const ListClass: React.FC = () => {
 
                         <Box>
                             <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF' }}>
-                                Thống kê học lực của lớp
+                                {t('Class Performance Statistics')}
                             </Typography>
                             {loadingPerformanceSummary ? (
                                 <Box display="flex" justifyContent="center"><CircularProgress size={20} /></Box>
@@ -651,7 +665,7 @@ const ListClass: React.FC = () => {
                                                     {count}
                                                 </Typography>
                                                 <Typography variant="body2" color="text.secondary" sx={{ color: '#bdbdbd' }}>
-                                                    {category}
+                                                    {t(`performanceCategory.${category}`)}
                                                 </Typography>
                                             </Paper>
                                         </Grid>
@@ -659,7 +673,7 @@ const ListClass: React.FC = () => {
                                 </Grid>
                             ) : (
                                 <Typography variant="body2" color="text.secondary" sx={{ ml: 2, color: '#e0e0e0' }}>
-                                    Không có dữ liệu thống kê học lực cho lớp này.
+                                    {t('noPerformanceStatistics')}
                                 </Typography>
                             )}
                         </Box>
@@ -667,7 +681,7 @@ const ListClass: React.FC = () => {
 
                         <Box>
                              <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF' }}>
-                                 Điểm trung bình từng môn của lớp
+                                 {t('Class Subject Averages')}
                              </Typography>
                              {loadingClassAverages ? (
                                  <Box display="flex" justifyContent="center"><CircularProgress size={20} /></Box>
@@ -678,14 +692,14 @@ const ListClass: React.FC = () => {
                                      <Table size="small" sx={{ '& .MuiTableCell-root': { borderBottom: '1px solid #4f5263' } }}>
                                          <TableHead>
                                              <TableRow sx={{ backgroundColor: '#31323d' }}>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Môn học</TableCell>
-                                                 <TableCell align="right" sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Điểm trung bình</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('subject')}</TableCell>
+                                                 <TableCell align="right" sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('averageScore')}</TableCell>
                                              </TableRow>
                                          </TableHead>
                                          <TableBody>
                                              {classSubjectAverages.map((item, index) => (
                                                  <TableRow key={index} hover sx={{ '&:hover': { backgroundColor: '#2a2b37' } }}>
-                                                     <TableCell sx={{ color: '#e0e0e0' }}>{item.subject_name}</TableCell>
+                                                     <TableCell sx={{ color: '#e0e0e0' }}>{t(`subjectName.${item.subject_name}`)}</TableCell>
                                                      <TableCell align="right" sx={{ color: '#e0e0e0' }}>{parseFloat(item.average_score).toFixed(2)}</TableCell>
                                                  </TableRow>
                                              ))}
@@ -694,14 +708,14 @@ const ListClass: React.FC = () => {
                                  </TableContainer>
                              ) : (
                                  <Typography variant="body2" color="text.secondary" sx={{ ml: 2, color: '#e0e0e0' }}>
-                                     Không có dữ liệu điểm trung bình môn cho lớp này.
+                                     {t('noSubjectAverages')}
                                  </Typography>
                              )}
                         </Box>
 
                         <Box>
                             <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #4f5263', pb: 1, mb: 2, fontWeight: 'bold', color: '#FFFFFF' }}>
-                                Danh sách học sinh ({selectedClass.students.length})
+                                {t('Student List WithCount', { count: selectedClass.students.length })}
                             </Typography>
 
                              {selectedClass.students.length > 0 ? (
@@ -709,14 +723,14 @@ const ListClass: React.FC = () => {
                                     <Table size="small" sx={{ '& .MuiTableCell-root': { borderBottom: '1px solid #4f5263' } }}>
                                          <TableHead>
                                              <TableRow sx={{ backgroundColor: '#31323d' }}>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>ID</TableCell>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Họ và tên</TableCell>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Giới tính</TableCell>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Ngày sinh</TableCell>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Email</TableCell>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Số điện thoại</TableCell>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Địa chỉ</TableCell>
-                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Điểm</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('id')}</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('fullName')}</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('gender')}</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('birthday')}</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('email')}</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('phone')}</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('address')}</TableCell>
+                                                 <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>{t('score')}</TableCell>
                                              </TableRow>
                                          </TableHead>
                                          <TableBody>
@@ -724,7 +738,7 @@ const ListClass: React.FC = () => {
                                                  <TableRow key={student.id} hover sx={{ '&:hover': { backgroundColor: '#2a2b37' } }}>
                                                      <TableCell sx={{ color: '#e0e0e0' }}>{student.id}</TableCell>
                                                      <TableCell sx={{ color: '#e0e0e0' }}>{student.name}</TableCell>
-                                                     <TableCell sx={{ color: '#e0e0e0' }}>{student.gender || 'N/A'}</TableCell>
+                                                     <TableCell sx={{ color: '#e0e0e0' }}>{student.gender ? t(`genderType.${getGenderKey(student.gender)}`) : 'N/A'}</TableCell>
                                                      <TableCell sx={{ color: '#e0e0e0' }}>{formatDate(student.birthday)}</TableCell>
                                                      <TableCell sx={{ color: '#e0e0e0' }}>{student.email || 'N/A'}</TableCell>
                                                      <TableCell sx={{ color: '#e0e0e0' }}>{student.phone || 'N/A'}</TableCell>
@@ -746,7 +760,7 @@ const ListClass: React.FC = () => {
                                  </TableContainer>
                              ) : (
                                  <Typography variant="body2" color="text.secondary" sx={{ ml: 2, color: '#e0e0e0' }}>
-                                     Không có học sinh nào trong lớp này.
+                                     {t('noStudentInClass')}
                                  </Typography>
                              )}
                         </Box>
@@ -763,7 +777,7 @@ const ListClass: React.FC = () => {
                 <DialogTitle>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Box>
-                            Điểm số của học sinh: {currentStudentForScores?.name || ''}
+                            {t('studentScoresTitle', { name: currentStudentForScores?.name || '' })}
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Button
@@ -772,7 +786,7 @@ const ListClass: React.FC = () => {
                                 sx={{ mr: 1, minWidth: 90, bgcolor: selectedSemester === '1' ? '#7e57c2' : undefined, color: '#fff' }}
                                 onClick={() => setSelectedSemester('1')}
                             >
-                                Học kỳ 1
+                                {t('Semester 1')}
                             </Button>
                             <Button
                                 variant={selectedSemester === '2' ? 'contained' : 'outlined'}
@@ -780,7 +794,7 @@ const ListClass: React.FC = () => {
                                 sx={{ minWidth: 90, bgcolor: selectedSemester === '2' ? '#7e57c2' : undefined, color: '#fff' }}
                                 onClick={() => setSelectedSemester('2')}
                             >
-                                Học kỳ 2
+                                {t('Semester 2')}
                             </Button>
                             {(loadingScores || loadingSubjects) && <CircularProgress size={20} sx={{ ml: 2 }} />}
                             {subjectError && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{subjectError}</Typography>}
@@ -790,17 +804,17 @@ const ListClass: React.FC = () => {
                 <DialogContent>
                     <Box sx={{ mb: 2 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                            Điểm trung bình: {studentAverageScore !== null ? studentAverageScore : 'N/A'}
+                            {t('averageScore')}: {studentAverageScore !== null ? studentAverageScore : 'N/A'}
                         </Typography>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                            Học lực: {studentPerformanceCategory}
+                            {t('performance')}: {t(`performanceCategory.${studentPerformanceCategory}`)}
                         </Typography>
                     </Box>
 
                     {scoreError ? (
                         <Typography color="error">{scoreError}</Typography>
                     ) : scores.length === 0 && !loadingScores ? (
-                        <Typography>Không tìm thấy điểm số chi tiết cho học sinh này</Typography>
+                        <Typography>{t('noDetailedScores')}</Typography>
                     ) : (
                         <TableContainer component={Paper}>
                             <Table size="small">
@@ -811,7 +825,7 @@ const ListClass: React.FC = () => {
                                             (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
                                             (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
                                         ).map(type => (
-                                            <TableCell key={type.value} align="center"><strong>{type.label}</strong></TableCell>
+                                            <TableCell key={type.value} align="center"><strong>{t(`scoreTypeLabel.${type.value}`)}</strong></TableCell>
                                         ))}
                                     </TableRow>
                                 </TableHead>
@@ -820,7 +834,7 @@ const ListClass: React.FC = () => {
                                         const subjectName = subject.name;
                                         return (
                                             <TableRow key={subjectName}>
-                                                <TableCell align="center">{subjectName}</TableCell>
+                                                <TableCell align="center">{t(`subjectName.${subjectName}`)}</TableCell>
                                                 {scoreTypes.filter(st =>
                                                     (selectedSemester === '1' && ['oral', '15min', '45min', 'mid1', 'final1'].includes(st.value)) ||
                                                     (selectedSemester === '2' && ['oral', '15min', '45min', 'mid2', 'final2'].includes(st.value))
@@ -853,7 +867,7 @@ const ListClass: React.FC = () => {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseScoreDialog}>Đóng</Button>
+                    <Button onClick={handleCloseScoreDialog}>{t('close')}</Button>
                 </DialogActions>
             </Dialog>
 

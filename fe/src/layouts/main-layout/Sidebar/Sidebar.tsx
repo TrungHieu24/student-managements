@@ -90,7 +90,7 @@ const Sidebar = ({ open }: { open: boolean }): ReactElement => {
           <Image
             src={open ? logoWithText : logo}
             alt={open ? 'logo with text' : 'logo'}
-            height={40}
+            height={80}
           />
         </MuiLink>
       </Toolbar>

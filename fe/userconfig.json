@@ -3,7 +3,7 @@
     {
     "id": 1,
     "path": "/",
-    "title": "dashboard",
+    "title": "dashboard.title",
     "icon": "mingcute:home-1-fill",
     "active": true
   },
@@ -70,7 +70,7 @@
     {
    "id": 1,
    "path": "/",
-   "title": "Trang Cá Nhân", 
+   "title": "dashboard.title", 
    "icon": "mingcute:home-1-fill", 
    "active": true 
   },
@@ -107,7 +107,7 @@
     {
     "id": 1,
     "path": "/",
-    "title": "dashboard",
+    "title": "dashboard.title",
     "icon": "mingcute:home-1-fill",
     "active": true
   },

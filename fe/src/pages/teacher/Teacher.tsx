@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios, { AxiosError } from 'axios'; 
+import { useTranslation } from 'react-i18next';
+import { SelectChangeEvent } from '@mui/material/Select';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 import {
   Box,
@@ -112,6 +117,7 @@ interface DetailsForm {
 }
 
 const TeacherManagement: React.FC = () => {
+  const { t } = useTranslation();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -354,7 +360,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
       });
       setNotification({
         open: true,
-        message: 'Xóa giáo viên thành công',
+        message: t('teacher_delete_success'),
         severity: 'success',
       });
       fetchTeachers();
@@ -362,7 +368,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
       console.error('API Error:', err);
       setNotification({
         open: true,
-        message: err.response?.data?.message || 'Lỗi khi xóa giáo viên',
+        message: t('teacher_delete_error'),
         severity: 'error',
       });
     } finally {
@@ -370,9 +376,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
     }
   };
   const handleAddFormChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>,
   ) => {
     const { name, value } = e.target;
     if (!name) return;
@@ -389,9 +393,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
   };
 
   const handleEditBasicFormChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>,
   ) => {
     const { name, value } = e.target;
     if (!name) return;
@@ -407,11 +409,11 @@ const openEditBasicDialog = (teacher: Teacher) => {
     }
   };
 
-  const handleAddSubjectsChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+  const handleAddSubjectsChange = (e: SelectChangeEvent<number[]>) => {
     const value = e.target.value;
     setAddForm({
       ...addForm,
-      subjects: Array.isArray(value) ? (value as number[]) : [],
+      subjects: Array.isArray(value) ? value : [],
     });
     if (addFormErrors.subjects) {
       setAddFormErrors({
@@ -421,11 +423,11 @@ const openEditBasicDialog = (teacher: Teacher) => {
     }
   };
 
-  const handleDetailsSubjectsChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+  const handleDetailsSubjectsChange = (e: SelectChangeEvent<number[]>) => {
     const value = e.target.value;
     setDetailsEditForm({
       ...detailsEditForm,
-      subjects: Array.isArray(value) ? (value as number[]) : [],
+      subjects: Array.isArray(value) ? value : [],
     });
     if (detailsEditFormErrors.subjects) {
       const updatedErrors = { ...detailsEditFormErrors };
@@ -436,11 +438,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
 
   const handleAddAssignmentChange = (
     index: number,
-    e:
-      | React.ChangeEvent<
-          HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
-        >
-      | { target: { name?: string; value: any } },
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string | number>,
   ) => {
     const { name, value } = e.target;
     if (!name) return;
@@ -478,11 +476,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
   };
   const handleDetailsAssignmentChange = (
     index: number,
-    e:
-      | React.ChangeEvent<
-          HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
-        >
-      | { target: { name?: string; value: any } },
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string | number>,
   ) => {
     const { name, value } = e.target;
     if (!name) return;
@@ -757,7 +751,6 @@ const openEditBasicDialog = (teacher: Teacher) => {
           })),
       };
 
-      // Expecting the generated password in the response
       const res = await axios.post('http://localhost:8000/api/teachers', payload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -770,8 +763,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
 
       setNotification({
         open: true,
-        message: `Thêm giáo viên mới thành công. Mật khẩu: ${generatedPassword}`,
-
+        message: t('teacher_add_success', { password: generatedPassword }),
         severity: 'success',
       });
       fetchTeachers();
@@ -786,7 +778,6 @@ const openEditBasicDialog = (teacher: Teacher) => {
           if (key.startsWith('teaching_assignments.')) {
             const parts = key.split('.');
             const index = parseInt(parts[1], 10);
-
             const field = parts[2];
 
             if (!formattedErrors.assignments) {
@@ -806,7 +797,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
       } else {
         setNotification({
           open: true,
-          message: err.response?.data?.message || 'Lỗi khi thêm giáo viên mới',
+          message: t('teacher_add_error'),
           severity: 'error',
         });
       }
@@ -868,7 +859,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
       });
       setNotification({
         open: true,
-        message: 'Cập nhật thông tin giáo viên cơ bản thành công',
+        message: t('teacher_update_success'),
         severity: 'success',
       });
       closeEditBasicDialog();
@@ -888,7 +879,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
       } else {
         setNotification({
           open: true,
-          message: err.response?.data?.message || 'Lỗi khi cập nhật thông tin giáo viên cơ bản',
+          message: t('teacher_update_error'),
           severity: 'error',
         });
       }
@@ -973,7 +964,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
       // Hiển thị thông báo thành công
       setNotification({
         open: true,
-        message: 'Cập nhật chi tiết giáo viên thành công',
+        message: t('teacher_update_success'),
         severity: 'success',
       });
     } catch (err: any) {
@@ -1040,7 +1031,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         <Grid item xs={12} sm={6}>
           <TextField
             name="name"
-            label="Họ tên"
+            label={t('fullName')}
             fullWidth
             value={form.name}
             onChange={handleChange}
@@ -1054,7 +1045,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         <Grid item xs={12} sm={6}>
           <TextField
             name="email"
-            label="Email"
+            label={t('email')}
             fullWidth
             value={form.email}
             onChange={handleChange}
@@ -1068,7 +1059,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         <Grid item xs={12} sm={6}>
           <TextField
             name="phone"
-            label="Điện thoại"
+            label={t('phone')}
             fullWidth
             value={form.phone}
             onChange={handleChange}
@@ -1081,46 +1072,55 @@ const openEditBasicDialog = (teacher: Teacher) => {
 
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth margin="dense">
-            <InputLabel id="add-gender-select-label">Giới tính</InputLabel>
+            <InputLabel id="add-gender-select-label">{t('gender')}</InputLabel>
             <Select
               labelId="add-gender-select-label"
               name="gender"
               value={form.gender}
               onChange={handleChange}
-              label="Giới tính"
+              label={t('gender')}
             >
               <MenuItem value="">
-                <em>Không chọn</em>
+                <em>{t('noSelect')}</em>
               </MenuItem>
-              <MenuItem value="Nam">Nam</MenuItem>
-
-              <MenuItem value="Nữ">Nữ</MenuItem>
-              <MenuItem value="Khác">Khác</MenuItem>
+              <MenuItem value="Nam">{t('genderType.male')}</MenuItem>
+              <MenuItem value="Nữ">{t('genderType.female')}</MenuItem>
+              <MenuItem value="Khác">{t('genderType.other')}</MenuItem>
             </Select>
           </FormControl>
         </Grid>
 
         <Grid item xs={12} sm={6}>
-            <TextField
-              name="birthday"
-              label="Ngày sinh"
-              fullWidth
-              value={form.birthday} 
-              onChange={handleChange}
-              error={!!addFormErrors.birthday}
-              helperText={addFormErrors.birthday || 'VD:YYYY-MM-DD'} 
-              variant="outlined"
-              margin="dense"
-              InputLabelProps={{
-                shrink: true, 
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DatePicker
+              label={t('birthday')}
+              value={form.birthday ? dayjs(form.birthday) : null}
+              onChange={(newValue) => {
+                handleChange({
+                  target: {
+                    name: 'birthday',
+                    value: newValue ? dayjs(newValue).format('YYYY-MM-DD') : ''
+                  }
+                } as any);
+              }}
+              maxDate={dayjs()}
+              format="DD/MM/YYYY"
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  margin: "dense",
+                  error: !!addFormErrors.birthday,
+                  helperText: addFormErrors.birthday
+                }
               }}
             />
+          </LocalizationProvider>
         </Grid>
 
         <Grid item xs={12} sm={6}>
           <TextField
             name="address"
-            label="Địa chỉ"
+            label={t('address')}
             fullWidth
             value={form.address}
             onChange={handleChange}
@@ -1133,7 +1133,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
 
         <Grid item xs={12}>
           <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
-            Môn dạy chuyên ngành
+            {t('specialized_subjects')}
           </Typography>
           <FormControl fullWidth margin="dense" error={!!subjectsErrors}>
             <Select
@@ -1142,7 +1142,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
               multiple
               value={form.subjects || []}
               onChange={handleAddSubjectsChange}
-              input={<OutlinedInput label="Môn dạy chuyên ngành" />}
+              input={<OutlinedInput label={t('specialized_subjects')} />}
               renderValue={(selected) => {
                 const selectedArray = Array.isArray(selected) ? selected : [];
                 return (
@@ -1159,7 +1159,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
             >
               {subjects.map((subject) => (
                 <MenuItem key={subject.id} value={subject.id}>
-                  {subject.name}
+                  {t(`subjectName.${subject.name}`)}
                 </MenuItem>
               ))}
             </Select>
@@ -1169,7 +1169,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
 
         <Grid item xs={12}>
           <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
-            Phân công giảng dạy
+            {t('teaching_assignments')}
           </Typography>
           <Stack spacing={2}>
             {(form.teaching_assignments || []).map((assignment, index) =>
@@ -1195,24 +1195,24 @@ const openEditBasicDialog = (teacher: Teacher) => {
                         required
                         error={!!assignmentFormErrors[index]?.subject_id}
                       >
-                        <InputLabel>Môn học</InputLabel>
+                        <InputLabel>{t('subject')}</InputLabel>
                         <Select
                           name="subject_id"
                           value={assignment.subject_id}
-                          label="Môn học"
+                          label={t('subject')}
                           onChange={(e) =>
                             handleAddAssignmentChange(
                               index,
-                              e as React.ChangeEvent<{ name?: string; value: unknown }>,
+                              e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
                             )
                           }
                         >
                           <MenuItem value="">
-                            <em>Chọn môn học</em>
+                            <em>{t('select_subject')}</em>
                           </MenuItem>
                           {subjects.map((subject) => (
                             <MenuItem key={subject.id} value={subject.id}>
-                              {subject.name}
+                              {t(`subjectName.${subject.name}`)}
                             </MenuItem>
                           ))}
                         </Select>
@@ -1229,25 +1229,25 @@ const openEditBasicDialog = (teacher: Teacher) => {
                         required
                         error={!!assignmentFormErrors[index]?.class_id}
                       >
-                        <InputLabel>Lớp</InputLabel>
+                        <InputLabel>{t('class')}</InputLabel>
 
                         <Select
                           name="class_id"
                           value={assignment.class_id}
-                          label="Lớp"
+                          label={t('class')}
                           onChange={(e) =>
                             handleAddAssignmentChange(
                               index,
-                              e as React.ChangeEvent<{ name?: string; value: unknown }>,
+                              e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
                             )
                           }
                         >
                           <MenuItem value="">
-                            <em>Chọn lớp</em>
+                            <em>{t('select_class')}</em>
                           </MenuItem>
                           {classes.map((cls) => (
                             <MenuItem key={cls.id} value={cls.id}>
-                              {`${cls.name} (Khối ${cls.grade})`}
+                              {`${cls.name} (${t('grade')} ${cls.grade})`}
                             </MenuItem>
                           ))}
                         </Select>
@@ -1260,7 +1260,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         name="school_year"
-                        label="Năm học"
+                        label={t('school_year')}
                         fullWidth
                         value={assignment.school_year}
                         onChange={(e) => handleAddAssignmentChange(index, e)}
@@ -1269,7 +1269,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                         variant="outlined"
                         margin="dense"
                         required
-                        placeholder="VD: 2024-2025"
+                        placeholder="YYYY-YYYY"
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -1279,26 +1279,24 @@ const openEditBasicDialog = (teacher: Teacher) => {
                         required
                         error={!!assignmentFormErrors[index]?.semester}
                       >
-                        <InputLabel>Học kỳ</InputLabel>
+                        <InputLabel>{t('semester')}</InputLabel>
 
                         <Select
                           name="semester"
                           value={assignment.semester}
-                          label="Học
-                                                          kỳ"
+                          label={t('semester')}
                           onChange={(e) =>
                             handleAddAssignmentChange(
                               index,
-                              e as React.ChangeEvent<{ name?: string; value: unknown }>,
+                              e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
                             )
                           }
                         >
                           <MenuItem value="">
-                            <em>Chọn học kỳ</em>
+                            <em>{t('select_semester')}</em>
                           </MenuItem>
-                          <MenuItem value={1}>Học kỳ 1</MenuItem>
-
-                          <MenuItem value={2}>Học kỳ 2</MenuItem>
+                          <MenuItem value={1}>{t('semester_1')}</MenuItem>
+                          <MenuItem value={2}>{t('semester_2')}</MenuItem>
                         </Select>
 
                         {assignmentFormErrors[index]?.semester && (
@@ -1309,7 +1307,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         name="weekly_periods"
-                        label="Số tiết/tuần"
+                        label={t('weekly_periods')}
                         fullWidth
                         type="number"
                         value={assignment.weekly_periods}
@@ -1322,7 +1320,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                     <Grid item xs={12}>
                       <TextField
                         name="notes"
-                        label="Ghi chú"
+                        label={t('notes')}
                         fullWidth
                         value={assignment.notes}
                         onChange={(e) => handleAddAssignmentChange(index, e)}
@@ -1342,7 +1340,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
               variant="outlined"
               sx={{ width: 'fit-content' }}
             >
-              Thêm Phân công
+              {t('add_assignment')}
             </Button>
           </Stack>
         </Grid>
@@ -1359,7 +1357,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         <Grid item xs={12} sm={6}>
           <TextField
             name="name"
-            label="Họ tên"
+            label={t('fullName')}
             fullWidth
             value={form.name}
             onChange={handleChange}
@@ -1373,7 +1371,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         <Grid item xs={12} sm={6}>
           <TextField
             name="email"
-            label="Email"
+            label={t('email')}
             fullWidth
             value={form.email}
             onChange={handleChange}
@@ -1388,7 +1386,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         <Grid item xs={12} sm={6}>
           <TextField
             name="phone"
-            label="Điện thoại"
+            label={t('phone')}
             fullWidth
             value={form.phone}
             onChange={handleChange}
@@ -1401,47 +1399,56 @@ const openEditBasicDialog = (teacher: Teacher) => {
 
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth margin="dense">
-            <InputLabel id="edit-gender-select-label">Giới tính</InputLabel>
+            <InputLabel id="edit-gender-select-label">{t('gender')}</InputLabel>
             <Select
               labelId="edit-gender-select-label"
               name="gender"
               value={form.gender}
               onChange={handleChange}
-              label="Giới tính"
+              label={t('gender')}
             >
               <MenuItem value="">
-                <em>Không chọn</em>
+                <em>{t('noSelect')}</em>
               </MenuItem>
-              <MenuItem value="Nam">Nam</MenuItem>
-
-              <MenuItem value="Nữ">Nữ</MenuItem>
-              <MenuItem value="Khác">Khác</MenuItem>
+              <MenuItem value="Nam">{t('genderType.male')}</MenuItem>
+              <MenuItem value="Nữ">{t('genderType.female')}</MenuItem>
+              <MenuItem value="Khác">{t('genderType.other')}</MenuItem>
             </Select>
             {errors.gender && <FormHelperText>{errors.gender}</FormHelperText>}
           </FormControl>
         </Grid>
 
         <Grid item xs={12} sm={6}>
-            <TextField
-              name="birthday"
-              label="Ngày sinh"
-              fullWidth
-              value={form.birthday} 
-              onChange={handleChange}
-              error={!!errors.birthday}
-              helperText={errors.birthday || 'VD:YYYY-MM-DD'}
-              variant="outlined"
-              margin="dense"
-              InputLabelProps={{
-                shrink: true,
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DatePicker
+              label={t('birthday')}
+              value={form.birthday ? dayjs(form.birthday) : null}
+              onChange={(newValue) => {
+                handleChange({
+                  target: {
+                    name: 'birthday',
+                    value: newValue ? dayjs(newValue).format('YYYY-MM-DD') : ''
+                  }
+                } as any);
+              }}
+              maxDate={dayjs()}
+              format="DD/MM/YYYY"
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  margin: "dense",
+                  error: !!errors.birthday,
+                  helperText: errors.birthday
+                }
               }}
             />
+          </LocalizationProvider>
         </Grid>
 
         <Grid item xs={12} sm={6}>
           <TextField
             name="address"
-            label="Địa chỉ"
+            label={t('address')}
             fullWidth
             value={form.address}
             onChange={handleChange}
@@ -1466,7 +1473,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="h6" gutterBottom>
-          Môn dạy chuyên ngành
+          {t('specialized_subjects')}
         </Typography>
         <FormControl fullWidth margin="dense" error={!!subjectsErrors} sx={{ mb: 3 }}>
           <Select
@@ -1475,14 +1482,14 @@ const openEditBasicDialog = (teacher: Teacher) => {
             multiple
             value={form.subjects || []}
             onChange={handleSubjectsChange}
-            input={<OutlinedInput label="Môn dạy chuyên ngành" />}
+            input={<OutlinedInput label={t('specialized_subjects')} />}
             renderValue={(selected) => {
               const selectedArray = Array.isArray(selected) ? selected : [];
               return (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                   {selectedArray.map((value) => {
                     const subject = subjects.find((s) => s.id === value);
-                    return subject ? <Chip key={value} label={subject.name} size="small" /> : null;
+                    return subject ? <Chip key={value} label={t(`subjectName.${subject.name}`)} size="small" /> : null;
                   })}
                 </Box>
               );
@@ -1490,7 +1497,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
           >
             {subjects.map((subject) => (
               <MenuItem key={subject.id} value={subject.id}>
-                {subject.name}
+                {t(`subjectName.${subject.name}`)}
               </MenuItem>
             ))}
           </Select>
@@ -1499,7 +1506,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         </FormControl>
 
         <Typography variant="h6" gutterBottom>
-          Phân công giảng dạy
+          {t('teaching_assignments')}
         </Typography>
         <Stack spacing={2}>
           {(form.teaching_assignments || []).map((assignment, index) =>
@@ -1526,24 +1533,24 @@ const openEditBasicDialog = (teacher: Teacher) => {
                       required
                       error={!!assignmentFormErrors[index]?.subject_id}
                     >
-                      <InputLabel>Môn học</InputLabel>
+                      <InputLabel>{t('subject')}</InputLabel>
                       <Select
                         name="subject_id"
                         value={assignment.subject_id}
-                        label="Môn học"
+                        label={t('subject')}
                         onChange={(e) =>
                           handleDetailsAssignmentChange(
                             index,
-                            e as React.ChangeEvent<{ name?: string; value: unknown }>,
+                            e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
                           )
                         }
                       >
                         <MenuItem value="">
-                          <em>Chọn môn học</em>
+                          <em>{t('select_subject')}</em>
                         </MenuItem>
                         {subjects.map((subject) => (
                           <MenuItem key={subject.id} value={subject.id}>
-                            {subject.name}
+                            {t(`subjectName.${subject.name}`)}
                           </MenuItem>
                         ))}
                       </Select>
@@ -1560,25 +1567,25 @@ const openEditBasicDialog = (teacher: Teacher) => {
                       required
                       error={!!assignmentFormErrors[index]?.class_id}
                     >
-                      <InputLabel>Lớp</InputLabel>
+                      <InputLabel>{t('class')}</InputLabel>
 
                       <Select
                         name="class_id"
                         value={assignment.class_id}
-                        label="Lớp"
+                        label={t('class')}
                         onChange={(e) =>
                           handleDetailsAssignmentChange(
                             index,
-                            e as React.ChangeEvent<{ name?: string; value: unknown }>,
+                            e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
                           )
                         }
                       >
                         <MenuItem value="">
-                          <em>Chọn lớp</em>
+                          <em>{t('select_class')}</em>
                         </MenuItem>
                         {classes.map((cls) => (
                           <MenuItem key={cls.id} value={cls.id}>
-                            {`${cls.name} (Khối ${cls.grade})`}
+                            {`${cls.name} (${t('grade')} ${cls.grade})`}
                           </MenuItem>
                         ))}
                       </Select>
@@ -1591,8 +1598,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       name="school_year"
-                      label="Năm
-                                                 học"
+                      label={t('school_year')}
                       fullWidth
                       value={assignment.school_year}
                       onChange={(e) => handleDetailsAssignmentChange(index, e)}
@@ -1601,7 +1607,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                       variant="outlined"
                       margin="dense"
                       required
-                      placeholder="VD: 2024-2025"
+                      placeholder="YYYY-YYYY"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -1611,25 +1617,24 @@ const openEditBasicDialog = (teacher: Teacher) => {
                       required
                       error={!!assignmentFormErrors[index]?.semester}
                     >
-                      <InputLabel>Học kỳ</InputLabel>
+                      <InputLabel>{t('semester')}</InputLabel>
 
                       <Select
                         name="semester"
                         value={assignment.semester}
-                        label="Học kỳ"
+                        label={t('semester')}
                         onChange={(e) =>
                           handleDetailsAssignmentChange(
                             index,
-                            e as React.ChangeEvent<{ name?: string; value: unknown }>,
+                            e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
                           )
                         }
                       >
                         <MenuItem value="">
-                          <em>Chọn học kỳ</em>
+                          <em>{t('select_semester')}</em>
                         </MenuItem>
-                        <MenuItem value={1}>Học kỳ 1</MenuItem>
-
-                        <MenuItem value={2}>Học kỳ 2</MenuItem>
+                        <MenuItem value={1}>{t('semester_1')}</MenuItem>
+                        <MenuItem value={2}>{t('semester_2')}</MenuItem>
                       </Select>
 
                       {assignmentFormErrors[index]?.semester && (
@@ -1640,7 +1645,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       name="weekly_periods"
-                      label="Số tiết/tuần"
+                      label={t('weekly_periods')}
                       fullWidth
                       type="number"
                       value={assignment.weekly_periods}
@@ -1653,7 +1658,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                   <Grid item xs={12}>
                     <TextField
                       name="notes"
-                      label="Ghi chú"
+                      label={t('notes')}
                       fullWidth
                       value={assignment.notes}
                       onChange={(e) => handleDetailsAssignmentChange(index, e)}
@@ -1673,7 +1678,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
             variant="outlined"
             sx={{ width: 'fit-content' }}
           >
-            Thêm Phân công
+            {t('add_assignment')}
           </Button>
         </Stack>
       </Box>
@@ -1685,14 +1690,14 @@ const openEditBasicDialog = (teacher: Teacher) => {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="h6" gutterBottom>
-          Môn dạy chuyên ngành
+          {t('specialized_subjects')}
         </Typography>
         <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 3 }}>
           {teacher.subjects && teacher.subjects.length > 0 ? (
             teacher.subjects.map((subject) => (
               <Chip
                 key={subject.id}
-                label={subject.name}
+                label={t(`subjectName.${subject.name}`)}
                 size="small"
                 color="primary"
                 variant="outlined"
@@ -1700,13 +1705,13 @@ const openEditBasicDialog = (teacher: Teacher) => {
             ))
           ) : (
             <Typography variant="body2" color="text.secondary">
-              Không có môn chuyên ngành
+              {t('no_specialized_subjects')}
             </Typography>
           )}
         </Stack>
 
         <Typography variant="h6" gutterBottom>
-          Phân công giảng dạy
+          {t('teaching_assignments')}
         </Typography>
         <Stack spacing={1}>
           {teacher.teaching_assignments && teacher.teaching_assignments.length > 0 ? (
@@ -1716,28 +1721,28 @@ const openEditBasicDialog = (teacher: Teacher) => {
                 assignment ? (
                   <Paper key={assignment.id} elevation={0} sx={{ p: 1, border: '1px solid #eee' }}>
                     <Typography variant="body2">
-                      <strong>Lớp:</strong> {assignment.class?.name || 'N/A'} (Khối{' '}
+                      <strong>{t('class')}:</strong> {assignment.class?.name || 'N/A'} ({t('grade')}{' '}
                       {assignment.class?.grade || 'N/A'})
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Môn:</strong> {assignment.subject?.name || 'N/A'}
+                      <strong>{t('subject')}:</strong> {assignment.subject ? t(`subjectName.${assignment.subject.name}`) : 'N/A'}
                     </Typography>
 
                     <Typography variant="body2">
-                      <strong>Năm học:</strong> {assignment.school_year}
+                      <strong>{t('school_year')}:</strong> {assignment.school_year}
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Học kỳ:</strong> {assignment.semester}
+                      <strong>{t('semester')}:</strong> {assignment.semester}
                     </Typography>
                     {assignment.weekly_periods != null && (
                       <Typography variant="body2">
-                        <strong>Số tiết/tuần:</strong> {assignment.weekly_periods}
+                        <strong>{t('weekly_periods')}:</strong> {assignment.weekly_periods}
                       </Typography>
                     )}
 
                     {assignment.notes && (
                       <Typography variant="body2">
-                        <strong>Ghi chú:</strong> {assignment.notes}
+                        <strong>{t('notes')}:</strong> {assignment.notes}
                       </Typography>
                     )}
                   </Paper>
@@ -1745,7 +1750,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
               )
           ) : (
             <Typography variant="body2" color="text.secondary">
-              Chưa có phân công
+              {t('no_assignments')}
             </Typography>
           )}
         </Stack>
@@ -1756,7 +1761,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
   return (
     <Box p={2}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">Quản lý giáo viên</Typography>
+        <Typography variant="h5">{t('teacher_management')}</Typography>
         <Box>
           <Button
             variant="contained"
@@ -1765,9 +1770,9 @@ const openEditBasicDialog = (teacher: Teacher) => {
             onClick={openAddDialog}
             sx={{ mr: 2 }}
           >
-            Thêm giáo viên
+            {t('add_teacher')}
           </Button>
-          <Tooltip title="Làm mới">
+          <Tooltip title={t('refresh')}>
             <IconButton onClick={handleRefresh} disabled={loading}>
               <RefreshIcon />
             </IconButton>
@@ -1788,14 +1793,14 @@ const openEditBasicDialog = (teacher: Teacher) => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>STT</TableCell>
-                <TableCell>Họ tên</TableCell>
-                <TableCell>Ngày sinh</TableCell>
-                <TableCell>Giới tính</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Điện thoại</TableCell>
-                <TableCell>Địa chỉ</TableCell>
-                <TableCell align="center">Thao tác</TableCell>
+                <TableCell>{t('serialNumber')}</TableCell>
+                <TableCell>{t('fullName')}</TableCell>
+                <TableCell>{t('birthday')}</TableCell>
+                <TableCell>{t('gender')}</TableCell>
+                <TableCell>{t('email')}</TableCell>
+                <TableCell>{t('phone')}</TableCell>
+                <TableCell>{t('address')}</TableCell>
+                <TableCell align="center">{t('actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1805,15 +1810,19 @@ const openEditBasicDialog = (teacher: Teacher) => {
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{teacher.name}</TableCell>
                     <TableCell>
-                      {teacher.birthday ? dayjs(teacher.birthday).format('DD/MM/YYYY') : 'N/A'} 
+                      {teacher.birthday ? dayjs(teacher.birthday).format('DD/MM/YYYY') : 'N/A'}
                     </TableCell>
-                    <TableCell>{teacher.gender}</TableCell>
+                    <TableCell>
+                      {teacher.gender === 'Nam' ? t('genderType.male') :
+                       teacher.gender === 'Nữ' ? t('genderType.female') :
+                       teacher.gender === 'Khác' ? t('genderType.other') : 'N/A'}
+                    </TableCell>
                     <TableCell>{teacher.email}</TableCell>
                     <TableCell>{teacher.phone || 'N/A'}</TableCell>
                     <TableCell>{teacher.address || 'N/A'}</TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={1} justifyContent="center">
-                        <Tooltip title="Xem & Chỉnh sửa chi tiết">
+                        <Tooltip title={t('view_details')}>
                           <IconButton
                             size="small"
                             color="info"
@@ -1823,7 +1832,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                           </IconButton>
                         </Tooltip>
 
-                        <Tooltip title="Sửa thông tin cơ bản">
+                        <Tooltip title={t('edit_basic_info')}>
                           <IconButton
                             size="small"
                             color="primary"
@@ -1833,7 +1842,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
                           </IconButton>
                         </Tooltip>
 
-                        <Tooltip title="Xóa">
+                        <Tooltip title={t('delete')}>
                           <IconButton
                             size="small"
                             color="error"
@@ -1849,9 +1858,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={8} align="center">
-                    {' '}
-                    {/* Cập nhật colspan */}
-                    <Typography>Không có dữ liệu giáo viên</Typography>
+                    <Typography>{t('no_teacher_data')}</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -1866,19 +1873,18 @@ const openEditBasicDialog = (teacher: Teacher) => {
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">{'Xác nhận xóa giáo viên'}</DialogTitle>
+        <DialogTitle id="delete-dialog-title">{t('confirm_delete_teacher')}</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Bạn có chắc chắn muốn xóa giáo viên {selectedTeacher?.name} không?
+            {t('delete_teacher_confirmation', { teacherName: selectedTeacher?.name })}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDeleteDialog} color="primary">
-            Hủy
+            {t('cancel')}
           </Button>
-
           <Button onClick={handleDeleteTeacher} color="error" autoFocus>
-            Xóa
+            {t('delete')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1890,15 +1896,14 @@ const openEditBasicDialog = (teacher: Teacher) => {
         fullWidth
         aria-labelledby="edit-basic-dialog-title"
       >
-        <DialogTitle id="edit-basic-dialog-title">{'Chỉnh sửa thông tin cơ bản'}</DialogTitle>
+        <DialogTitle id="edit-basic-dialog-title">{t('edit_basic_info')}</DialogTitle>
         <DialogContent>{renderEditBasicFormFields()}</DialogContent>
         <DialogActions>
           <Button onClick={closeEditBasicDialog} color="inherit">
-            Hủy
+            {t('cancel')}
           </Button>
-
           <Button onClick={handleUpdateBasicTeacher} color="primary" variant="contained">
-            Lưu thay đổi
+            {t('save')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1910,16 +1915,14 @@ const openEditBasicDialog = (teacher: Teacher) => {
         fullWidth
         aria-labelledby="add-dialog-title"
       >
-        <DialogTitle id="add-dialog-title">{'Thêm giáo viên mới'}</DialogTitle>
+        <DialogTitle id="add-dialog-title">{t('add_teacher')}</DialogTitle>
         <DialogContent>{renderAddFormFields()}</DialogContent>
-
         <DialogActions>
           <Button onClick={closeAddDialog} color="inherit">
-            Hủy
+            {t('cancel')}
           </Button>
-
           <Button onClick={handleAddTeacher} color="primary" variant="contained">
-            Thêm giáo viên
+            {t('add_teacher')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1932,15 +1935,15 @@ const openEditBasicDialog = (teacher: Teacher) => {
         aria-labelledby="details-dialog-title"
       >
         <DialogTitle id="details-dialog-title">
-          Thông tin chi tiết: {selectedTeacher?.name}
+          {t('teacher_details')}: {selectedTeacher?.name}
         </DialogTitle>
         <DialogContent dividers>{renderTeacherDetails(selectedTeacher)}</DialogContent>
         <DialogActions>
           <Button onClick={openEditDetailsDialog} color="primary" variant="outlined">
-            Chỉnh sửa chi tiết
+            {t('edit_details')}
           </Button>
           <Button onClick={closeDetailsDialog} color="inherit">
-            Đóng
+            {t('close')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1953,15 +1956,15 @@ const openEditBasicDialog = (teacher: Teacher) => {
         aria-labelledby="edit-details-dialog-title"
       >
         <DialogTitle id="edit-details-dialog-title">
-          Chỉnh sửa chi tiết: {selectedTeacher?.name}
+          {t('edit_details')}: {selectedTeacher?.name}
         </DialogTitle>
         <DialogContent dividers>{renderDetailsEditFormFields()}</DialogContent>
         <DialogActions>
           <Button onClick={closeEditDetailsDialog} color="inherit">
-            Hủy
+            {t('cancel')}
           </Button>
           <Button onClick={handleUpdateDetails} color="primary" variant="contained">
-            Lưu chi tiết
+            {t('save')}
           </Button>
         </DialogActions>
       </Dialog>

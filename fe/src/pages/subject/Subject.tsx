@@ -157,7 +157,7 @@ const SubjectManagement: React.FC = () => {
       
       setSnackbar({
         open: true,
-        message: t('subject_delete_success') || 'Xóa môn học thành công',
+        message: t('subject_delete_success'),
         severity: 'success'
       });
       
@@ -165,8 +165,8 @@ const SubjectManagement: React.FC = () => {
     } catch (err: any) {
       console.error('Error deleting subject:', err);
       const errorMessage = err.response?.status === 401
-        ? t('unauthorized_access') || 'Không có quyền truy cập'
-        : t('subject_delete_error') || 'Lỗi khi xóa môn học';
+        ? t('unauthorized_access')
+        : t('subject_delete_error');
       
       setSnackbar({
         open: true,
@@ -190,7 +190,7 @@ const SubjectManagement: React.FC = () => {
       
       setSnackbar({
         open: true,
-        message: t('subject_update_success') || 'Cập nhật môn học thành công',
+        message: t('subject_update_success'),
         severity: 'success'
       });
       
@@ -199,8 +199,8 @@ const SubjectManagement: React.FC = () => {
     } catch (err: any) {
       console.error('Error updating subject:', err);
       const errorMessage = err.response?.status === 401
-        ? t('unauthorized_access') || 'Không có quyền truy cập'
-        : t('subject_update_error') || 'Lỗi khi cập nhật môn học';
+        ? t('unauthorized_access')
+        : t('subject_update_error');
       
       setSnackbar({
         open: true,
@@ -223,7 +223,7 @@ const SubjectManagement: React.FC = () => {
       
       setSnackbar({
         open: true,
-        message: t('subject_add_success') || 'Thêm môn học thành công',
+        message: t('subject_add_success'),
         severity: 'success'
       });
       
@@ -232,8 +232,8 @@ const SubjectManagement: React.FC = () => {
     } catch (err: any) {
       console.error('Error adding subject:', err);
       const errorMessage = err.response?.status === 401
-        ? t('unauthorized_access') || 'Không có quyền truy cập'
-        : t('subject_add_error') || 'Lỗi khi thêm môn học';
+        ? t('unauthorized_access')
+        : t('subject_add_error');
       
       setSnackbar({
         open: true,
@@ -266,7 +266,7 @@ const SubjectManagement: React.FC = () => {
         }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h5">{t('subject_list') || 'Danh sách môn học'}</Typography>
+          <Typography variant="h5">{t('subject_list')}</Typography>
           <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
@@ -274,14 +274,14 @@ const SubjectManagement: React.FC = () => {
               onClick={fetchSubjects}
               disabled={loading}
             >
-              {t('refresh') || 'Làm mới'}
+              {t('refresh')}
             </Button>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleOpenAddDialog}
             >
-              {t('add_subject') || 'Thêm môn học'}
+              {t('add_subject')}
             </Button>
           </Stack>
         </Box>
@@ -293,7 +293,7 @@ const SubjectManagement: React.FC = () => {
         ) : !Array.isArray(subjects) || subjects.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
             <Typography variant="body1" color="text.secondary" textAlign="center">
-              {t('noSubjectData') || 'Không có dữ liệu môn học'}
+              {t('noSubjectData')}
             </Typography>
           </Box>
         ) : (
@@ -301,19 +301,19 @@ const SubjectManagement: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell width="20%"><strong>{t('serialNumber') || 'STT'}</strong></TableCell>
-                  <TableCell width="60%"><strong>{t('subject') || 'Môn học'}</strong></TableCell>
-                  <TableCell width="20%"><strong>{t('actions') || 'Thao tác'}</strong></TableCell>
+                  <TableCell width="20%"><strong>{t('serialNumber')}</strong></TableCell>
+                  <TableCell width="60%"><strong>{t('subject')}</strong></TableCell>
+                  <TableCell width="20%"><strong>{t('actions')}</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {subjects.map((subject, index) => (
                   <TableRow key={subject.id}>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell>{t(subject.name)}</TableCell>
+                    <TableCell>{t(`subjectName.${subject.name}`)}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1}>
-                        <Tooltip title={t('edit') || 'Sửa'}>
+                        <Tooltip title={t('edit')}>
                           <IconButton
                             color="primary"
                             onClick={() => handleOpenEditDialog(subject)}
@@ -321,7 +321,7 @@ const SubjectManagement: React.FC = () => {
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title={t('delete') || 'Xóa'}>
+                        <Tooltip title={t('delete')}>
                           <IconButton
                             color="error"
                             onClick={() => handleOpenDialog(subject)}
@@ -341,56 +341,56 @@ const SubjectManagement: React.FC = () => {
       
       {/* Delete Confirmation Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{t('confirmDelete') || 'Xác nhận xóa'}</DialogTitle>   
+        <DialogTitle>{t('confirmDelete')}</DialogTitle>   
         <DialogContent>
-          {t('deletesubject', { subjectName: t(subjectToDelete?.name || 'default_subject_name') })}
+          {t('deletesubject', { subjectName: t(`subjectName.${subjectToDelete?.name}`) })}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>{t('cancel') || 'Hủy'}</Button>
+          <Button onClick={handleCloseDialog}>{t('cancel')}</Button>
           <Button color="error" onClick={handleConfirmDelete}>
-            {loading ? <CircularProgress size={24} /> : (t('delete') || 'Xóa')}
+            {loading ? <CircularProgress size={24} /> : t('delete')}
           </Button>
         </DialogActions>
       </Dialog>
       
       {/* Edit Subject Dialog */}
       <Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('editSubject') || 'Sửa môn học'}</DialogTitle>
+        <DialogTitle>{t('editSubject')}</DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <TextField
             autoFocus
             margin="dense"
-            label={t('subject_name') || 'Tên môn học'}
+            label={t('subject_name')}
             fullWidth
-            value={t(editSubject?.name || '')}
+            value={editSubject?.name || ''}
             onChange={(e) => handleEditChange(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEditDialog}>{t('cancel') || 'Hủy'}</Button>
+          <Button onClick={handleCloseEditDialog}>{t('cancel')}</Button>
           <Button onClick={handleEditSubmit} variant="contained">
-            {loading ? <CircularProgress size={24} /> : (t('save') || 'Lưu')}
+            {loading ? <CircularProgress size={24} /> : t('save')}
           </Button>
         </DialogActions>
       </Dialog>
       
       {/* Add Subject Dialog */}
       <Dialog open={openAddDialog} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('addSubject') || 'Thêm môn học'}</DialogTitle>
+        <DialogTitle>{t('addSubject')}</DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <TextField
             autoFocus
             margin="dense"
-            label={t('subject_name') || 'Tên môn học'}
+            label={t('subject_name')}
             fullWidth
             value={newSubjectName}
             onChange={(e) => setNewSubjectName(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog}>{t('cancel') || 'Hủy'}</Button>
+          <Button onClick={handleCloseAddDialog}>{t('cancel')}</Button>
           <Button onClick={handleAddSubmit} variant="contained" disabled={!newSubjectName.trim()}>
-            {loading ? <CircularProgress size={24} /> : (t('add') || 'Thêm')}
+            {loading ? <CircularProgress size={24} /> : t('add')}
           </Button>
         </DialogActions>
       </Dialog>
