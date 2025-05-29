@@ -66,9 +66,19 @@ const Teaching = () => {
                 const teacherData = response.data;
                 const assignmentsData = teacherData?.teaching_assignments || [];
 
-             const validAssignments = Array.isArray(assignmentsData) ? assignmentsData.filter(assignment => assignment != null && assignment.class && assignment.subject) : [];
+                const validAssignments = Array.isArray(assignmentsData) ? assignmentsData.filter(assignment => assignment != null && assignment.class && assignment.subject) : [];
 
-          setAssignments(validAssignments);
+                // Sort assignments by grade first, then by class name
+                const sortedAssignments = validAssignments.sort((a, b) => {
+                    // First compare by grade
+                    if (a.class.grade !== b.class.grade) {
+                        return a.class.grade - b.class.grade;
+                    }
+                    // If grades are equal, compare by class name
+                    return a.class.name.localeCompare(b.class.name, 'vi', { sensitivity: 'base' });
+                });
+
+                setAssignments(sortedAssignments);
            } catch (err: any) {
               console.error("API Error fetching teaching assignments:", err.response?.data || err);
                 if (isAxiosError(err) && err.response) {
