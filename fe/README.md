@@ -5,8 +5,8 @@
 <!-- PROJECT LOGO -->
 <div align="left" >
 <center>
-      <a href="public/LOGO.png" align="center">
-        <img src="public/LOGO.png" alt="Logo" width="200" height="120">
+      <a href="public/Logo-with-text.png" align="center">
+        <img src="public/Logo-with-text.png" alt="Logo" width="200" height="120">
       </a>    
 </center>
 <center>
