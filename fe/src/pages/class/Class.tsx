@@ -92,6 +92,7 @@ interface DeleteClassResponse {
 
 
 const Class: React.FC = () => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const { t } = useTranslation();
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,10 +214,11 @@ const Class: React.FC = () => {
       return;
     }
     try {
-      const response = await axios.get<ClassData[]>('http://localhost:8000/api/classes', {
+      const response = await axios.get<ClassData[]>(`${API_BASE_URL}/api/classes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          "ngrok-skip-browser-warning": "true",
         }
       });
       const fetchedClasses = response.data;
@@ -245,10 +247,11 @@ const Class: React.FC = () => {
       return;
     }
     try {
-      const response = await axios.get<TeacherData[]>('http://localhost:8000/api/teachers', {
+      const response = await axios.get<TeacherData[]>(`${API_BASE_URL}/api/teachers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+           "ngrok-skip-browser-warning": "true",
         }
       });
       setTeachers(response.data);
@@ -369,7 +372,7 @@ const Class: React.FC = () => {
         school_year: schoolYearString,
         teacher_id: editTeacherId || null
       };
-      const response = await axios.put<ClassOperationResponse>(`http://localhost:8000/api/classes/${currentClass.id}`, requestData, {
+      const response = await axios.put<ClassOperationResponse>(`${API_BASE_URL}/api/classes/${currentClass.id}`, requestData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -421,7 +424,7 @@ const Class: React.FC = () => {
         school_year: schoolYearString,
         teacher_id: newClassTeacherId || null
       };
-      const response = await axios.post<ClassOperationResponse>('http://localhost:8000/api/classes', requestData, {
+      const response = await axios.post<ClassOperationResponse>(`${API_BASE_URL}/api/classes`, requestData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -493,7 +496,7 @@ const Class: React.FC = () => {
     }
 
     try {
-      await axios.delete<DeleteClassResponse>(`http://localhost:8000/api/classes/${idToDelete}`, {
+      await axios.delete<DeleteClassResponse>(`${API_BASE_URL}/api/classes/${idToDelete}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

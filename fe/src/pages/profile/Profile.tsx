@@ -41,6 +41,8 @@ const Profile = (): ReactElement => {
 
   const navigate = useNavigate();
 
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem('token');
@@ -50,8 +52,12 @@ const Profile = (): ReactElement => {
       }
 
       try {
-        const res = await axios.get('http://localhost:8000/api/profile', {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await axios.get(`${API_BASE_URL}/api/profile`, { 
+          headers: {
+            Authorization: `Bearer ${token}`, 
+            "ngrok-skip-browser-warning": "true",
+            'Content-Type': 'application/json' 
+          },
         });
         const data = res.data as User;
         setUser(data);
@@ -70,7 +76,7 @@ const Profile = (): ReactElement => {
     };
 
     fetchProfile();
-  }, [navigate, t]);
+  }, [navigate, t, API_BASE_URL]); 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -91,8 +97,11 @@ const Profile = (): ReactElement => {
 
     try {
       // Cập nhật thông tin cơ bản
-      const res = await axios.put('http://localhost:8000/api/profile', updatedUser, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await axios.put(`${API_BASE_URL}/api/profile`, updatedUser, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true", 
+        },
       });
 
       // Nếu có chọn avatar mới
@@ -100,10 +109,11 @@ const Profile = (): ReactElement => {
         const formData = new FormData();
         formData.append('avatar', avatarFile);
 
-        await axios.post('http://localhost:8000/api/profile/avatar', formData, {
+        await axios.post(`${API_BASE_URL}/api/profile/avatar`, formData, { 
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
+            "ngrok-skip-browser-warning": "true", 
           },
         });
       }

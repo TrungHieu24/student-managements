@@ -42,6 +42,7 @@ interface TeachingAssignment {
 
 
 const Teaching = () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const [assignments, setAssignments] = useState<TeachingAssignment[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -56,10 +57,11 @@ const Teaching = () => {
                  throw new Error('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
                }
 
-                const response = await axios.get<any>('http://localhost:8000/api/teacher/info', {
+                const response = await axios.get<any>(`${API_BASE_URL}/api/teacher/info`, {
                    headers: {
                       Authorization: `Bearer ${token}`,
-                      'Content-Type': 'application/json'
+                      'Content-Type': 'application/json',
+                      "ngrok-skip-browser-warning": "true",
                    }
                 });
 

@@ -41,6 +41,7 @@ interface LoginResponse {
 }
 
 const Login = (): ReactElement => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL; 
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
@@ -59,7 +60,7 @@ const Login = (): ReactElement => {
 
     if (tokenValid && role === 'ADMIN') {
       navigate(rootPaths.homeRoot, { replace: true });
-    } else if (tokenValid && role === 'TEACHER' || role === 'USER') {
+    } else if (tokenValid && (role === 'TEACHER' || role === 'USER')) {
         const isFirstLogin = localStorage.getItem('is_first_login') === 'true';
         if (isFirstLogin) {
             navigate('/first-time-password-change', { replace: true });
@@ -97,9 +98,13 @@ const Login = (): ReactElement => {
     }
 
     try {
-      const res = await axios.post<LoginResponse>('http://localhost:8000/api/login', {
+      const res = await axios.post<LoginResponse>(`${API_BASE_URL}/api/login`, {
         email: email,
         password: password,
+      }, {
+        headers: {
+            "ngrok-skip-browser-warning": "true",
+        }
       });
 
       const { token, user } = res.data;
@@ -155,9 +160,11 @@ const Login = (): ReactElement => {
           errorMessage = 'Email hoặc mật khẩu không chính xác.';
         } else if (status === 422 && err.response?.data?.errors) {
           const validationErrors = err.response.data.errors;
-          let messages = [];
+          let messages: string[] = []; 
           for (const field in validationErrors) {
-            messages.push(...validationErrors[field]);
+            if (Array.isArray(validationErrors[field])) { 
+              messages.push(...validationErrors[field]);
+            }
           }
           errorMessage = messages.join(' ') || 'Dữ liệu đăng nhập không hợp lệ.';
         } else if (err.response?.data?.message) {

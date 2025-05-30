@@ -118,6 +118,7 @@ interface DetailsForm {
 }
 
 const TeacherManagement: React.FC = () => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const { t } = useTranslation();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -174,10 +175,12 @@ const TeacherManagement: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:8000/api/teachers', {
+      const res = await axios.get(`${API_BASE_URL}/api/teachers`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+          "ngrok-skip-browser-warning": "true",
+
         },
       });
       let teachersData: Teacher[] = [];
@@ -230,10 +233,11 @@ const TeacherManagement: React.FC = () => {
   const fetchSubjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:8000/api/subjects', {
+      const res = await axios.get(`${API_BASE_URL}/api/subjects`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+          "ngrok-skip-browser-warning": "true",
         },
       });
       if (Array.isArray(res.data)) {
@@ -249,10 +253,11 @@ const TeacherManagement: React.FC = () => {
   const fetchClasses = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:8000/api/classes', {
+      const res = await axios.get(`${API_BASE_URL}/api/classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+          "ngrok-skip-browser-warning": "true",
         },
       });
       if (Array.isArray(res.data)) {
@@ -353,10 +358,12 @@ const openEditBasicDialog = (teacher: Teacher) => {
     if (!selectedTeacher) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/teachers/${selectedTeacher.id}`, {
+      await axios.delete(`${API_BASE_URL}/api/teachers/${selectedTeacher.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+          "ngrok-skip-browser-warning": "true",
+
         },
       });
       setNotification({
@@ -752,10 +759,12 @@ const openEditBasicDialog = (teacher: Teacher) => {
           })),
       };
 
-      const res = await axios.post('http://localhost:8000/api/teachers', payload, {
+      const res = await axios.post(`${API_BASE_URL}/api/teachers`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+                    "ngrok-skip-browser-warning": "true",
+
         },
       });
 
@@ -824,7 +833,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
         address: editBasicForm.address || null,
       };
       const res = await axios.put(
-        `http://localhost:8000/api/teachers/${selectedTeacher.id}`,
+        `${API_BASE_URL}/api/teachers/${selectedTeacher.id}`,
         payload,
         {
           headers: {
@@ -933,7 +942,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
       console.log('Sending update payload:', payload);
 
       const res = await axios.put(
-        `http://localhost:8000/api/teachers/${selectedTeacher.id}`,
+        `${API_BASE_URL}/api/teachers/${selectedTeacher.id}`,
         payload,
         {
           headers: {

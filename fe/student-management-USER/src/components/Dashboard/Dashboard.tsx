@@ -96,6 +96,7 @@ interface ScoreType {
 }
 
 const Dashboard: React.FC = () => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [classDetails, setClassDetails] = useState<ClassDetailsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -273,8 +274,12 @@ const Dashboard: React.FC = () => {
         throw new Error('Không tìm thấy token xác thực.');
       }
 
-      const response = await axios.get<Score[]>(`http://localhost:8000/api/scores/${studentId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get<Score[]>(`${API_BASE_URL}/api/scores/${studentId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`, 
+          "ngrok-skip-browser-warning": "true",
+          'Content-Type': 'application/json' 
+        },
       });
       const scoresData = Array.isArray(response.data) ? response.data : [];
       setScores(scoresData);
@@ -371,9 +376,8 @@ const Dashboard: React.FC = () => {
           return;
         }
 
-        // Bước 1: Lấy thông tin lớp của học sinh đang đăng nhập
         const myClassResponse = await axios.get<MyClassResponse>(
-          'http://localhost:8000/api/my-class',
+          `${API_BASE_URL}/api/my-class`,
           getAxiosConfig()
         );
 
@@ -381,22 +385,26 @@ const Dashboard: React.FC = () => {
 
         setClassInfo(myClass);
 
-        // Bước 2: Lấy chi tiết lớp học bao gồm danh sách học sinh và giáo viên
         const classDetailsResponse = await axios.get<ClassDetailsResponse>(
-          `http://localhost:8000/api/classes/${myClass.id}/students`,
+          `${API_BASE_URL}/api/classes/${myClass.id}/students`,
           getAxiosConfig()
         );
         setClassDetails(classDetailsResponse.data);
 
-        // Bước 3: Lấy điểm số cho TẤT CẢ học sinh trong lớp để tính toán thống kê
         const classStudents = classDetailsResponse.data.students;
         if (classStudents.length > 0) {
           const studentScoresMap = new Map<number, Score[]>();
           const fetchPromises = classStudents.map(async (student) => {
             try {
               const response = await axios.get<Score[]>(
-                `http://localhost:8000/api/scores/${student.id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                `${API_BASE_URL}/api/scores/${student.id}`,
+                { 
+                   headers: {
+                   Authorization: `Bearer ${token}`, 
+                   "ngrok-skip-browser-warning": "true",
+                   'Content-Type': 'application/json' 
+                 },
+                },
               );
 
               studentScoresMap.set(student.id, Array.isArray(response.data) ? response.data : []);
