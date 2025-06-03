@@ -57,18 +57,14 @@ const Login = (): ReactElement => {
   useEffect(() => {
     const tokenValid = isTokenValid();
     const role = getUserRole();
+    const isFirstLogin = localStorage.getItem('is_first_login') === 'true';
 
-    if (tokenValid && role === 'ADMIN') {
-      navigate(rootPaths.homeRoot, { replace: true });
-    } else if (tokenValid && (role === 'TEACHER' || role === 'USER')) {
-        const isFirstLogin = localStorage.getItem('is_first_login') === 'true';
+    if (tokenValid) {
         if (isFirstLogin) {
             navigate('/first-time-password-change', { replace: true });
         } else {
             navigate(rootPaths.homeRoot, { replace: true });
         }
-    } else if (tokenValid) {
-      clearAuth();
     }
   }, [navigate]);
 
@@ -128,22 +124,10 @@ const Login = (): ReactElement => {
       window.dispatchEvent(new Event('loginSuccess'));
 
       setTimeout(() => {
-        if (user.role === 'ADMIN') {
-          navigate(rootPaths.homeRoot, { replace: true });
-        } else if (user.role === 'TEACHER' || user.role === 'USER') {
-          if (is_first_login) {
-            navigate('/first-time-password-change', { replace: true });
-          } else {
-            navigate(rootPaths.homeRoot, { replace: true });
-          }
+        if (is_first_login) {
+          navigate('/first-time-password-change', { replace: true });
         } else {
-          setError('Tài khoản của bạn không có quyền truy cập vào trang này.');
-          setNotification({
-            open: true,
-            message: 'Tài khoản của bạn không có quyền truy cập vào trang này.',
-            severity: 'error',
-          });
-          clearAuth(); 
+          navigate(rootPaths.homeRoot, { replace: true });
         }
         setLoading(false);
       }, 800);

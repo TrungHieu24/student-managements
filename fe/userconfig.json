@@ -23,10 +23,25 @@
   },
   {
     "id": 4,
-    "path": "/teacher",
     "title": "teacher",
     "icon": "mdi:teacher",
-    "active": true
+    "active": true,
+    "children": [ 
+      {
+        "id": 4.1,
+        "path": "/teacher", 
+        "title": "teacher",
+        "icon": "mdi:account-details",
+        "active": true
+      },
+      {
+        "id": 4.2, 
+        "path": "/teacherhistory", 
+        "title": "Lịch sử chỉnh sửa",
+        "icon": "mdi:history",
+        "active": true
+      }
+    ]
   },
   {
     "id": 5,
@@ -35,31 +50,36 @@
     "icon": "mdi:book-education-outline",
     "active": true
   },
-
   {
     "id": 6,
+    "path": "/users",
+    "title": "user",
+    "icon": "fluent:people-team-20-filled",
+    "active": true 
+  },
+  {
+    "id": 7,
     "path": "/profile",
     "title": "profile",
     "icon": "clarity:user-line",
     "active": true
   },
   {
-    "id": 7,
+    "id": 8,
     "path": "/loginhistory",
     "title": "history",
     "icon": "ic:round-history",
     "active": true
   },
   {
-    "id": 8,
+    "id": 9,
     "path": "/setting",
     "title": "settings",
     "icon": "mingcute:settings-3-line",
     "active": true
   },
-
   {
-    "id": 9,
+    "id": 10,
     "path": "/authentication/login",
     "title": "login",
     "icon": "tabler:login",

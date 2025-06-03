@@ -32,6 +32,8 @@ const Homeroom = lazy<() => ReactElement>(() => import('../pages/homeroom/Homero
 const ClassesTeaching = lazy(() => import('../pages/classes-teaching/ClassesTeaching'));
 const Teaching = lazy<() => ReactElement>(() => import('../pages/teaching-assignment/Teaching'));
 const LoginHistory = lazy(() =>  import('../pages/login-history/LoginHistory'));
+const TeacherHistory = lazy(() =>  import('../pages/history/TeacherHistory'));
+const UserManagement = lazy(() =>  import('../pages/user-management/UserManagement'));
 const FirstTimePasswordChange = lazy(() => import('../pages/authentication/FirstTimePasswordChange'));
 export const FIRST_TIME_PASSWORD_CHANGE_PATH = 'first-time-password-change';
 
@@ -77,6 +79,8 @@ const routes: RouteObject[] = [
           { path: 'homeroom', element: <Homeroom /> },
           { path: 'teaching', element: <Teaching /> },
           { path: 'loginhistory', element: <LoginHistory/>},
+          { path: 'users', element: <UserManagement/>},
+          { path: 'teacherhistory', element: <TeacherHistory/>},
         ],
       },
       {
