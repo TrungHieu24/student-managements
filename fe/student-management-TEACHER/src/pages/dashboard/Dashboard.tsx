@@ -98,6 +98,7 @@ const RoundedAvatar = styled('img')({
 
 
 const TeacherProfileDisplay = () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const [teacherDetails, setTeacherDetails] = useState<TeacherDetails | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -114,10 +115,11 @@ const TeacherProfileDisplay = () => {
                     return;
                 }
 
-                const response = await axios.get('http://localhost:8000/api/teacher/info', {
+                const response = await axios.get(`${API_BASE_URL}/api/teacher/info`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        "ngrok-skip-browser-warning": "true",
                     }
                 });
 

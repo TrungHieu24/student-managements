@@ -27,6 +27,7 @@ interface LoginHistoryItem {
 }
 
 const LoginHistory = () => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const { t } = useTranslation();
   const [loginHistories, setLoginHistories] = useState<LoginHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,10 +43,11 @@ const LoginHistory = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8000/api/login-history?page=${pageNumber}&per_page=${rowsPerPage}`,
+      const response = await axios.get(`${API_BASE_URL}/api/login-history?page=${pageNumber}&per_page=${rowsPerPage}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+           "ngrok-skip-browser-warning": "true",
           },
         }
       );

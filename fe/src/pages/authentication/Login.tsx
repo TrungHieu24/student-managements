@@ -41,6 +41,7 @@ interface LoginResponse {
 }
 
 const Login = (): ReactElement => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL; 
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
@@ -56,18 +57,14 @@ const Login = (): ReactElement => {
   useEffect(() => {
     const tokenValid = isTokenValid();
     const role = getUserRole();
+    const isFirstLogin = localStorage.getItem('is_first_login') === 'true';
 
-    if (tokenValid && role === 'ADMIN') {
-      navigate(rootPaths.homeRoot, { replace: true });
-    } else if (tokenValid && role === 'TEACHER' || role === 'USER') {
-        const isFirstLogin = localStorage.getItem('is_first_login') === 'true';
+    if (tokenValid) {
         if (isFirstLogin) {
             navigate('/first-time-password-change', { replace: true });
         } else {
             navigate(rootPaths.homeRoot, { replace: true });
         }
-    } else if (tokenValid) {
-      clearAuth();
     }
   }, [navigate]);
 
@@ -97,9 +94,13 @@ const Login = (): ReactElement => {
     }
 
     try {
-      const res = await axios.post<LoginResponse>('http://localhost:8000/api/login', {
+      const res = await axios.post<LoginResponse>(`${API_BASE_URL}/api/login`, {
         email: email,
         password: password,
+      }, {
+        headers: {
+            "ngrok-skip-browser-warning": "true",
+        }
       });
 
       const { token, user } = res.data;
@@ -123,22 +124,10 @@ const Login = (): ReactElement => {
       window.dispatchEvent(new Event('loginSuccess'));
 
       setTimeout(() => {
-        if (user.role === 'ADMIN') {
-          navigate(rootPaths.homeRoot, { replace: true });
-        } else if (user.role === 'TEACHER' || user.role === 'USER') {
-          if (is_first_login) {
-            navigate('/first-time-password-change', { replace: true });
-          } else {
-            navigate(rootPaths.homeRoot, { replace: true });
-          }
+        if (is_first_login) {
+          navigate('/first-time-password-change', { replace: true });
         } else {
-          setError('Tài khoản của bạn không có quyền truy cập vào trang này.');
-          setNotification({
-            open: true,
-            message: 'Tài khoản của bạn không có quyền truy cập vào trang này.',
-            severity: 'error',
-          });
-          clearAuth(); 
+          navigate(rootPaths.homeRoot, { replace: true });
         }
         setLoading(false);
       }, 800);
@@ -155,9 +144,11 @@ const Login = (): ReactElement => {
           errorMessage = 'Email hoặc mật khẩu không chính xác.';
         } else if (status === 422 && err.response?.data?.errors) {
           const validationErrors = err.response.data.errors;
-          let messages = [];
+          let messages: string[] = []; 
           for (const field in validationErrors) {
-            messages.push(...validationErrors[field]);
+            if (Array.isArray(validationErrors[field])) { 
+              messages.push(...validationErrors[field]);
+            }
           }
           errorMessage = messages.join(' ') || 'Dữ liệu đăng nhập không hợp lệ.';
         } else if (err.response?.data?.message) {

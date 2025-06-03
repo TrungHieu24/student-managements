@@ -140,7 +140,7 @@ const ClassesTeaching: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [expandedClassId, setExpandedClassId] = useState<number | null>(null);
 
-    const API_BASE_URL = 'http://localhost:8000/api';
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const [notification, setNotification] = useState<{
         open: boolean;
         message: string;
@@ -208,7 +208,7 @@ const ClassesTeaching: React.FC = () => {
                     return;
                 }
 
-                const response = await axios.get<TeachingAssignment[]>(`${API_BASE_URL}/teacher/classes/teaching`, {
+                const response = await axios.get<TeachingAssignment[]>(`${API_BASE_URL}/api/teacher/classes/teaching`, {
                     headers: headers,
                 });
 
@@ -250,7 +250,7 @@ const ClassesTeaching: React.FC = () => {
             }
 
             console.log(`Đang tải học sinh cho lớp ${classId}...`);
-            const response = await axios.get<ClassStudentsResponse>(`${API_BASE_URL}/teacher/classes/${classId}/students`, {
+            const response = await axios.get<ClassStudentsResponse>(`${API_BASE_URL}/api/teacher/classes/${classId}/students`, {
                 headers: headers,
             });
             console.log(`Dữ liệu học sinh lớp ${classId}:`, response.data);
@@ -340,7 +340,7 @@ const ClassesTeaching: React.FC = () => {
             if (!token) {
                 throw new Error('Không tìm thấy token xác thực.');
             }
-            const response = await axios.get<Score[]>(`${API_BASE_URL}/scores/${studentId}`, {
+            const response = await axios.get<Score[]>(`${API_BASE_URL}/api/scores/${studentId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const scoresData = Array.isArray(response.data) ? response.data : [];
@@ -447,7 +447,7 @@ const ClassesTeaching: React.FC = () => {
                 semester: parseInt(selectedSemester) 
             };
 
-            await axios.post(`${API_BASE_URL}/scores`, dataToSend, {
+            await axios.post(`${API_BASE_URL}/api/scores`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setNotification({ 
@@ -536,7 +536,7 @@ const ClassesTeaching: React.FC = () => {
                 type: scoreToEdit.type,
                 semester: scoreToEdit.semester 
             };
-            await axios.put(`${API_BASE_URL}/scores/${scoreToEdit.id}`, dataToSend, {
+            await axios.put(`${API_BASE_URL}/api/scores/${scoreToEdit.id}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setNotification({ 
@@ -595,7 +595,7 @@ const ClassesTeaching: React.FC = () => {
                 setDeletingScore(false);
                 return;
             }
-            await axios.delete(`${API_BASE_URL}/scores/${scoreToDeleteId}`, {
+            await axios.delete(`${API_BASE_URL}/api/scores/${scoreToDeleteId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setNotification({ 

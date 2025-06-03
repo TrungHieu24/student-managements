@@ -206,6 +206,7 @@ const getGenderKey = (gender: string | null): string => {
 };
 
 const ListClass: React.FC = () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const { t } = useTranslation();
     const [classesByGrade, setClassesByGrade] = useState<ClassesByGrade>({});
     const [selectedClass, setSelectedClass] = useState<ClassWithStudents | null>(null);
@@ -241,10 +242,11 @@ const ListClass: React.FC = () => {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get<ClassData[] | PaginatedResponse>('http://localhost:8000/api/classes', {
+            const res = await axios.get<ClassData[] | PaginatedResponse>(`${API_BASE_URL}/api/classes`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
+                    "ngrok-skip-browser-warning": "true",
                 },
             });
 
@@ -314,14 +316,26 @@ const ListClass: React.FC = () => {
             }
 
             const [classRes, classAveragesRes, performanceSummaryRes] = await Promise.all([
-                axios.get<ClassWithStudents>(`http://localhost:8000/api/classes/${classId}/students`, {
-                    headers: { Authorization: `Bearer ${token}` },
+                axios.get<ClassWithStudents>(`${API_BASE_URL}/api/classes/${classId}/students`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`, 
+                      "ngrok-skip-browser-warning": "true",
+                      'Content-Type': 'application/json' 
+                    },
                 }),
-                axios.get<ClassSubjectAverageResponse>(`http://localhost:8000/api/classes/${classId}/average-subject-scores`, {
-                    headers: { Authorization: `Bearer ${token}` },
+                axios.get<ClassSubjectAverageResponse>(`${API_BASE_URL}/api/classes/${classId}/average-subject-scores`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`, 
+                      "ngrok-skip-browser-warning": "true",
+                      'Content-Type': 'application/json' 
+                    },
                 }),
-                axios.get<ClassPerformanceSummary>(`http://localhost:8000/api/classes/${classId}/performance-summary`, {
-                     headers: { Authorization: `Bearer ${token}` },
+                axios.get<ClassPerformanceSummary>(`${API_BASE_URL}/api/classes/${classId}/performance-summary`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`, 
+                      "ngrok-skip-browser-warning": "true",
+                      'Content-Type': 'application/json' 
+                    },
                 }),
             ]);
 
@@ -406,8 +420,12 @@ const ListClass: React.FC = () => {
             setLoadingSubjects(false);
             return;
           }
-          const response = await axios.get<SubjectData[]>(`http://localhost:8000/api/subjects`, {
-            headers: { Authorization: `Bearer ${token}` },
+          const response = await axios.get<SubjectData[]>(`${API_BASE_URL}/api/subjects`, {
+            headers: {
+              Authorization: `Bearer ${token}`, 
+              "ngrok-skip-browser-warning": "true",
+              'Content-Type': 'application/json' 
+            },
           });
           setSubjects(response.data);
         } catch (err: any) {
@@ -438,8 +456,12 @@ const ListClass: React.FC = () => {
             setStudentPerformanceCategory('Lỗi tải điểm');
             return;
           }
-          const response = await axios.get<ScoreData[]>(`http://localhost:8000/api/scores/${studentId}`, {
-             headers: { Authorization: `Bearer ${token}` },
+          const response = await axios.get<ScoreData[]>(`${API_BASE_URL}/api/scores/${studentId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`, 
+              "ngrok-skip-browser-warning": "true",
+              'Content-Type': 'application/json' 
+            },
           });
 
           const scoresData = Array.isArray(response.data) ? response.data : [];

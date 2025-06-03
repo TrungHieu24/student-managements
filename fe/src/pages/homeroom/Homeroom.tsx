@@ -133,6 +133,7 @@ const sortVietnameseNames = (a: Student, b: Student): number => {
 
 
 const Homeroom = () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const [homeroomClasses, setHomeroomClasses] = useState<HomeroomClass[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -254,8 +255,12 @@ const Homeroom = () => {
             if (!token) {
                 throw new Error('Không tìm thấy token xác thực.');
             }
-            const response = await axios.get<Score[]>(`http://localhost:8000/api/scores/${studentId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const response = await axios.get<Score[]>(`${API_BASE_URL}/api/scores/${studentId}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`, 
+                  "ngrok-skip-browser-warning": "true",
+                  'Content-Type': 'application/json' 
+                },
             });
 
             const scoresData = Array.isArray(response.data) ? response.data : [];
@@ -299,8 +304,12 @@ const Homeroom = () => {
             setLoadingSubjects(false);
             return;
           }
-          const response = await axios.get<SubjectData[]>(`http://localhost:8000/api/subjects`, {
-            headers: { Authorization: `Bearer ${token}` },
+          const response = await axios.get<SubjectData[]>(`${API_BASE_URL}/api/subjects`, {
+            headers: {
+              Authorization: `Bearer ${token}`, 
+              "ngrok-skip-browser-warning": "true",
+              'Content-Type': 'application/json' 
+            },
           });
           setSubjects(response.data);
         } catch (err: any) {
@@ -409,7 +418,7 @@ const Homeroom = () => {
                 class_id: homeroomClassId,
             };
 
-            const res = await axios.post(`http://localhost:8000/api/students`, dataToSend, {
+            const res = await axios.post(`${API_BASE_URL}/api/students`, dataToSend, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -462,8 +471,12 @@ const Homeroom = () => {
              setLoadingClasses(false);
              return;
            }
-           const response = await axios.get<ClassOption[]>(`http://localhost:8000/api/classes`, {
-             headers: { Authorization: `Bearer ${token}` },
+           const response = await axios.get<ClassOption[]>(`${API_BASE_URL}/api/classes`, {
+                headers: {
+                  Authorization: `Bearer ${token}`, 
+                  "ngrok-skip-browser-warning": "true",
+                  'Content-Type': 'application/json' 
+                },
            });
             const filteredClasses = Array.isArray(response.data) ? response.data.filter(cls => grades.includes(String(cls.grade))) : [];
            setClasses(filteredClasses);
@@ -506,7 +519,7 @@ const Homeroom = () => {
                  setDeletingStudent(false);
                  return;
              }
-             await axios.delete(`http://localhost:8000/api/students/${studentToDeleteId}`, {
+             await axios.delete(`${API_BASE_URL}/api/students/${studentToDeleteId}`, {
                  headers: { Authorization: `Bearer ${token}` },
              });
              handleCloseDeleteStudentConfirm();
@@ -573,7 +586,7 @@ const Homeroom = () => {
                  class_id: studentToEdit.class_id,
              };
 
-             await axios.put(`http://localhost:8000/api/students/${studentToEdit.id}`, dataToSend, {
+             await axios.put(`${API_BASE_URL}/api/students/${studentToEdit.id}`, dataToSend, {
                  headers: {
                      Authorization: `Bearer ${token}`,
                      'Content-Type': 'application/json'
@@ -623,10 +636,11 @@ const Homeroom = () => {
                     return;
                 }
 
-                const classesResponse = await axios.get<HomeroomClass[]>('http://localhost:8000/api/teacher/classes/homeroom', {
+                const classesResponse = await axios.get<HomeroomClass[]>(`${API_BASE_URL}/api/teacher/classes/homeroom`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                         "ngrok-skip-browser-warning": "true",
                     }
                 });
 
@@ -642,11 +656,19 @@ const Homeroom = () => {
                 const classesWithStats = await Promise.all(classesData.map(async (classItem) => {
                     try {
                         const [averagesRes, performanceRes] = await Promise.all([
-                            axios.get<{ average_subject_scores: ClassSubjectAverage[] }>(`http://localhost:8000/api/classes/${classItem.id}/average-subject-scores`, {
-                                headers: { Authorization: `Bearer ${token}` },
+                            axios.get<{ average_subject_scores: ClassSubjectAverage[] }>(`${API_BASE_URL}/api/classes/${classItem.id}/average-subject-scores`, {
+                                headers: {
+                                  Authorization: `Bearer ${token}`, 
+                                  "ngrok-skip-browser-warning": "true",
+                                  'Content-Type': 'application/json' 
+                                },
                             }),
-                             axios.get<{ performance_summary: ClassPerformanceSummaryData }>(`http://localhost:8000/api/classes/${classItem.id}/performance-summary`, {
-                                headers: { Authorization: `Bearer ${token}` },
+                             axios.get<{ performance_summary: ClassPerformanceSummaryData }>(`${API_BASE_URL}/api/classes/${classItem.id}/performance-summary`, {
+                                headers: {
+                                  Authorization: `Bearer ${token}`, 
+                                  "ngrok-skip-browser-warning": "true",
+                                  'Content-Type': 'application/json' 
+                                },
                              }),
                         ]);
 

@@ -9,6 +9,7 @@ use App\Models\ClassModel;
 use App\Models\Student;
 use App\Models\Score;
 use App\Models\Subject;
+use App\Models\AuditLog;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -38,7 +39,7 @@ class TeacherController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'gender' => 'nullable|in:Nam,Nữ,Khác',
-            'birthday' => 'nullable|date_format:Y-m-d', // Enforce consistent date format
+            'birthday' => 'nullable|date_format:Y-m-d', 
             'address' => 'required|string|max:255',
             'subject_ids' => 'nullable|array',
             'subject_ids.*' => 'exists:subjects,id',
@@ -139,7 +140,7 @@ class TeacherController extends Controller
 
     public function update(Request $request, $id)
     {
-        $teacher = Teacher::with('user')->findOrFail($id);
+        $teacher = Teacher::with(['user', 'subjects', 'teachingAssignments'])->findOrFail($id);
 
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
@@ -165,6 +166,31 @@ class TeacherController extends Controller
         DB::beginTransaction();
 
         try {
+            // Store old values for audit log
+            $oldValues = [
+                'name' => $teacher->name,
+                'email' => $teacher->email,
+                'phone' => $teacher->phone,
+                'gender' => $teacher->gender,
+                'birthday' => $teacher->birthday,
+                'address' => $teacher->address,
+                'subjects' => $teacher->subjects->pluck('id')->toArray(),
+                'teaching_assignments' => $teacher->teachingAssignments->map(function($assignment) {
+                    return [
+                        'id' => $assignment->id,
+                        'class_id' => $assignment->class_id,
+                        'subject_id' => $assignment->subject_id,
+                        'school_year' => $assignment->school_year,
+                        'semester' => $assignment->semester,
+                        'is_homeroom_teacher' => $assignment->is_homeroom_teacher,
+                        'weekly_periods' => $assignment->weekly_periods,
+                        'notes' => $assignment->notes,
+                    ];
+                })->toArray()
+            ];
+
+            Log::info('Old values for audit log:', $oldValues);
+
             if ($teacher->user) {
                 $teacher->user->name = $validatedData['name'];
                 $teacher->user->email = $validatedData['email'];
@@ -173,7 +199,7 @@ class TeacherController extends Controller
                 }
                 $teacher->user->save();
             } else {
-                 Log::warning("User not found for teacher ID: " . $id . " during update.");
+                Log::warning("User not found for teacher ID: " . $id . " during update.");
             }
 
             $teacher->name = $validatedData['name'];
@@ -196,9 +222,8 @@ class TeacherController extends Controller
                 $toDelete = array_diff($currentIds, $incomingIds);
 
                 if (!empty($toDelete)) {
-                     TeachingAssignment::whereIn('id', $toDelete)->delete();
+                    TeachingAssignment::whereIn('id', $toDelete)->delete();
                 }
-
 
                 foreach ($assignments as $item) {
                     if (isset($item['id'])) {
@@ -214,7 +239,7 @@ class TeacherController extends Controller
                                 'notes' => $item['notes'] ?? null,
                             ]);
                         } else {
-                             Log::warning("Teaching assignment ID " . $item['id'] . " not found for teacher ID " . $teacher->id . " during update.");
+                            Log::warning("Teaching assignment ID " . $item['id'] . " not found for teacher ID " . $teacher->id . " during update.");
                         }
                     } else {
                         $existingAssignment = TeachingAssignment::where('teacher_id', $teacher->id)
@@ -225,7 +250,7 @@ class TeacherController extends Controller
                             ->first();
 
                         if (!$existingAssignment) {
-                             TeachingAssignment::create([
+                            TeachingAssignment::create([
                                 'teacher_id' => $teacher->id,
                                 'class_id' => (int)$item['class_id'],
                                 'subject_id' => (int)$item['subject_id'],
@@ -236,11 +261,51 @@ class TeacherController extends Controller
                                 'notes' => $item['notes'] ?? null,
                             ]);
                         } else {
-                             Log::warning("Attempted to create existing teaching assignment for teacher ID " . $teacher->id . " class " . $item['class_id'] . " subject " . $item['subject_id']);
+                            Log::warning("Attempted to create existing teaching assignment for teacher ID " . $teacher->id . " class " . $item['class_id'] . " subject " . $item['subject_id']);
                         }
                     }
                 }
             }
+
+            // Get updated teacher data for new values
+            $teacher->refresh();
+            $newValues = [
+                'name' => $teacher->name,
+                'email' => $teacher->email,
+                'phone' => $teacher->phone,
+                'gender' => $teacher->gender,
+                'birthday' => $teacher->birthday,
+                'address' => $teacher->address,
+                'subjects' => $teacher->subjects->pluck('id')->toArray(),
+                'teaching_assignments' => $teacher->teachingAssignments->map(function($assignment) {
+                    return [
+                        'id' => $assignment->id,
+                        'class_id' => $assignment->class_id,
+                        'subject_id' => $assignment->subject_id,
+                        'school_year' => $assignment->school_year,
+                        'semester' => $assignment->semester,
+                        'is_homeroom_teacher' => $assignment->is_homeroom_teacher,
+                        'weekly_periods' => $assignment->weekly_periods,
+                        'notes' => $assignment->notes,
+                    ];
+                })->toArray()
+            ];
+
+            Log::info('New values for audit log:', $newValues);
+
+            // Create audit log entry
+            $auditLog = AuditLog::create([
+                'table_name' => 'teachers',
+                'record_id' => $teacher->id,
+                'action_type' => 'UPDATE',
+                'user_id' => auth()->id(),
+                'old_values' => $oldValues,
+                'new_values' => $newValues,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            Log::info('Created audit log entry:', $auditLog->toArray());
 
             DB::commit();
 

@@ -17,6 +17,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 
 const FirstTimePasswordChange: React.FC = () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -71,7 +72,7 @@ const FirstTimePasswordChange: React.FC = () => {
                 return;
             }
 
-            const response = await axios.post('http://localhost:8000/api/change-password', {
+            const response = await axios.post(`${API_BASE_URL}/api/change-password`, {
                 new_password: newPassword,
                 new_password_confirmation: confirmPassword,
             }, {
@@ -92,7 +93,7 @@ const FirstTimePasswordChange: React.FC = () => {
             localStorage.clear();
 
             setTimeout(() => {
-                window.location.href = '/nickelfox/authentication/login';
+                window.location.href = '/authentication/login';
             }, 2000);
 
         } catch (err: any) {

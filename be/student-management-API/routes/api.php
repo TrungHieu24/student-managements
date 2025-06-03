@@ -11,6 +11,8 @@ use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\LoginHistoryController;
+use App\Http\Controllers\AuditLogController;
+
 
 
 // 🔐 Route dành cho ADMIN
@@ -84,12 +86,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/teachers/{id}', [TeacherController::class, 'update']);
     Route::delete('/teachers/{id}', [TeacherController::class, 'destroy']);
 
-    //Lịch sử đăng nhập
+    //Lịch sử đăng nhập/all
     Route::get('/login-history', [LoginHistoryController::class, 'index'])->name('login-history.index');
     Route::get('/login-history/{loginHistory}', [LoginHistoryController::class, 'show'])->name('login-history.show'); 
     Route::delete('/admin/login-history/{loginHistory}', [LoginHistoryController::class, 'destroy'])->name('admin.login-history.destroy');
     Route::post('/admin/login-history/export', [LoginHistoryController::class, 'export'])->name('admin.login-history.export');
     Route::post('/admin/login-history/bulk-delete', [LoginHistoryController::class, 'bulkDelete'])->name('admin.login-history.bulk-delete');
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit_logs.index');
+    Route::get('/teacher-history', [AuditLogController::class, 'getTeacherHistory']);
+
+
 
     // 🔓 Đăng xuất
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -98,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
     // 👀 Thông tin người dùng
+    Route::resource('users', UserController::class); 
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

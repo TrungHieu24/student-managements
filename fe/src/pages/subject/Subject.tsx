@@ -61,7 +61,8 @@ const SubjectManagement: React.FC = () => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
   
-  const apiUrl = 'http://localhost:8000/api/subjects';
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+  const apiUrl = `${API_BASE_URL}/api/subjects`; 
   
   // Get authentication token
   const getAuthToken = () => {
@@ -73,7 +74,8 @@ const SubjectManagement: React.FC = () => {
     const token = getAuthToken();
     return {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      "ngrok-skip-browser-warning": "true", 
     };
   };
   
@@ -82,7 +84,7 @@ const SubjectManagement: React.FC = () => {
     setLoading(true);
     try {
       const response = await axios.get(apiUrl, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
       });
       setSubjects(response.data);
       setError('');
@@ -151,6 +153,7 @@ const SubjectManagement: React.FC = () => {
     setLoading(true);
     
     try {
+      // Sử dụng apiUrl đã được định nghĩa với biến môi trường
       await axios.delete(`${apiUrl}/${subjectToDelete.id}`, {
         headers: getAuthHeaders()
       });
@@ -184,6 +187,7 @@ const SubjectManagement: React.FC = () => {
     setLoading(true);
     
     try {
+      // Sử dụng apiUrl đã được định nghĩa với biến môi trường
       await axios.put(`${apiUrl}/${editSubject.id}`, editSubject, {
         headers: getAuthHeaders()
       });

@@ -132,6 +132,7 @@ const CustomAverageScoreLegend: React.FC<any> = ({ payload }) => {
 
 
 const Dashboard: React.FC = () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const { t } = useTranslation();
     const [stats, setStats] = useState<StatsData>({
         students: 0,
@@ -169,14 +170,49 @@ const Dashboard: React.FC = () => {
         };
 
         try {
-            const [studentsRes, teachersRes, classesRes, subjectsRes, overallAverageRes, performanceRes, averageScoresRes] = await Promise.all([
-                axios.get<ApiResponse<any> | any[]>('http://localhost:8000/api/students', { headers }),
-                axios.get<ApiResponse<any> | any[]>('http://localhost:8000/api/teachers', { headers }),
-                axios.get<ApiResponse<any> | any[]>('http://localhost:8000/api/classes', { headers }),
-                axios.get<ApiResponse<any> | any[]>('http://localhost:8000/api/subjects', { headers }),
-                axios.get<OverallAverageScoreResponse>('http://localhost:8000/api/average-score', { headers }),
-                axios.get<StudentRankingResponse>('http://localhost:8000/api/student-ranking', { headers }),
-                axios.get<AverageScoreBySubjectResponse[]>('http://localhost:8000/api/average-score-by-subject', { headers }),
+const [studentsRes, teachersRes, classesRes, subjectsRes, overallAverageRes, performanceRes, averageScoresRes] = await Promise.all([
+                axios.get<ApiResponse<any> | any[]>(`${API_BASE_URL}/api/students`, { 
+                    headers: { 
+                        ...headers,
+                        "ngrok-skip-browser-warning": "true",
+                    }
+                }),
+                axios.get<ApiResponse<any> | any[]>(`${API_BASE_URL}/api/teachers`, { 
+                    headers: {
+                        ...headers,
+                        "ngrok-skip-browser-warning": "true",
+                    }
+                }),
+                axios.get<ApiResponse<any> | any[]>(`${API_BASE_URL}/api/classes`, { 
+                    headers: {
+                        ...headers,
+                        "ngrok-skip-browser-warning": "true",
+                    }
+                }),
+                axios.get<ApiResponse<any> | any[]>(`${API_BASE_URL}/api/subjects`, { 
+                    headers: {
+                        ...headers,
+                        "ngrok-skip-browser-warning": "true",
+                    }
+                }),
+                axios.get<OverallAverageScoreResponse>(`${API_BASE_URL}/api/average-score`, { 
+                    headers: {
+                        ...headers,
+                        "ngrok-skip-browser-warning": "true",
+                    }
+                }),
+                axios.get<StudentRankingResponse>(`${API_BASE_URL}/api/student-ranking`, { 
+                    headers: {
+                        ...headers,
+                        "ngrok-skip-browser-warning": "true",
+                    }
+                }),
+                axios.get<AverageScoreBySubjectResponse[]>(`${API_BASE_URL}/api/average-score-by-subject`, { 
+                    headers: {
+                        ...headers,
+                        "ngrok-skip-browser-warning": "true",
+                    }
+                }),
             ]);
 
             const getCount = (response: any): number => {
