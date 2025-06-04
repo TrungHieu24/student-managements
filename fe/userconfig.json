@@ -1,142 +1,163 @@
 {
   "admin": [
     {
-    "id": 1,
-    "path": "/",
-    "title": "dashboard.title",
-    "icon": "mingcute:home-1-fill",
-    "active": true
-  },
-  {
-    "id": 2,
-    "path": "/listclass",
-    "title": "listClass",
-    "icon": "mdi:book-open-variant",
-    "active": true
-  },
-  {
-    "id": 3,
-    "path": "/class",
-    "title": "class",
-    "icon": "mdi:google-classroom",
-    "active": true
-  },
-  {
-    "id": 4,
-    "title": "teacher",
-    "icon": "mdi:teacher",
-    "active": true,
-    "children": [ 
-      {
-        "id": 4.1,
-        "path": "/teacher", 
-        "title": "teacher",
-        "icon": "mdi:account-details",
-        "active": true
-      },
-      {
-        "id": 4.2, 
-        "path": "/teacherhistory", 
-        "title": "Lịch sử chỉnh sửa",
-        "icon": "mdi:history",
-        "active": true
-      }
-    ]
-  },
-  {
-    "id": 5,
-    "path": "/subject",
-    "title": "subject",
-    "icon": "mdi:book-education-outline",
-    "active": true
-  },
-  {
-    "id": 6,
-    "path": "/users",
-    "title": "user",
-    "icon": "fluent:people-team-20-filled",
-    "active": true 
-  },
-  {
-    "id": 7,
-    "path": "/profile",
-    "title": "profile",
-    "icon": "clarity:user-line",
-    "active": true
-  },
-  {
-    "id": 8,
-    "path": "/loginhistory",
-    "title": "history",
-    "icon": "ic:round-history",
-    "active": true
-  },
-  {
-    "id": 9,
-    "path": "/setting",
-    "title": "settings",
-    "icon": "mingcute:settings-3-line",
-    "active": true
-  },
-  {
-    "id": 10,
-    "path": "/authentication/login",
-    "title": "login",
-    "icon": "tabler:login",
-    "active": true
-  }
+      "id": 1,
+      "path": "/",
+      "title": "dashboard.title",
+      "icon": "mingcute:home-1-fill",
+      "active": true
+    },
+    {
+      "id": 2,
+      "path": "/listclass",
+      "title": "listClass",
+      "icon": "mdi:book-open-variant",
+      "active": true
+    },
+    {
+      "id": 3,
+      "path": "/class",
+      "title": "class",
+      "icon": "mdi:google-classroom",
+      "active": true
+    },
+    {
+      "id": 4,
+      "path": "/teacher",
+      "title": "teacher",
+      "icon": "mdi:teacher",
+      "active": true
+    },
+    {
+      "id": 5,
+      "path": "/subject",
+      "title": "subject",
+      "icon": "mdi:book-education",
+      "active": true
+    },
+    {
+      "id": 6,
+      "path": "/users",
+      "title": "user",
+      "icon": "mdi:account-details",
+      "active": true
+    },
+    {
+      "id": 7,
+      "path": "/profile",
+      "title": "profile",
+      "icon": "clarity:user-line",
+      "active": true
+    },
+    {
+      "id": 8,
+      "title": "history",
+      "icon": "material-symbols:history-rounded",
+      "active": true,
+      "children": [
+        {
+          "id": 8.1,
+          "path": "/loginhistory",
+          "title": "loginhistory",
+          "icon": "ic:round-login",
+          "active": true
+        },
+        {
+          "id": 8.2,
+          "path": "/classhistory",
+          "title": "classhistory",
+          "icon": "mdi:book-multiple",
+          "active": true
+        },
+        {
+          "id": 8.3,
+          "path": "/teacherhistory",
+          "title": "teacherhistory",
+          "icon": "ph:chalkboard-teacher-bold",
+          "active": true
+        },
+        {
+          "id": 8.4,
+          "path": "/subjecthistory",
+          "title": "subjecthistory",
+          "icon": "mdi:book-education-outline",
+          "active": true
+        },
+        {
+          "id": 8.5,
+          "path": "/userhistory",
+          "title": "userhistory",
+          "icon": "ph:user-list-bold",
+          "active": true
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "path": "/setting",
+      "title": "settings",
+      "icon": "mingcute:settings-3-line",
+      "active": true
+    },
+    {
+      "id": 10,
+      "path": "/authentication/login",
+      "title": "login",
+      "icon": "tabler:login",
+      "active": true
+    }
   ],
   "teacher": [
     {
-   "id": 1,
-   "path": "/",
-   "title": "dashboard.title", 
-   "icon": "mingcute:home-1-fill", 
-   "active": true 
-  },
-  {
-   "id": 2,
-   "path": "/homeroom", 
-   "title": "Lớp Chủ Nhiệm",
-   "icon": "mdi:account-tie", 
-   "active": true
-  },
-  {
-  "id": 3,
-  "path": "/classesteaching",
-  "title": "Lớp đang giảng dạy",
-  "icon": "mdi:book-open",
-  "active": true
-  },
-  {
-   "id": 4,
-   "path": "/teaching", 
-   "title": "Phân công giảng dạy",
-   "icon": "mdi:clipboard-text-outline", 
-   "active": true
-  },
-  {
-   "id": 5,
-   "path": "/authentication/login",
-   "title": "login",
-   "icon": "tabler:login",
-   "active": true
-  }
-  ],
-  "user":[
+      "id": 1,
+      "path": "/",
+      "title": "dashboard.title",
+      "icon": "mingcute:home-1-fill",
+      "active": true
+    },
     {
-    "id": 1,
-    "path": "/",
-    "title": "dashboard.title",
-    "icon": "mingcute:home-1-fill",
-    "active": true
-  },
-      {
-   "id": 2,
-   "path": "/authentication/login",
-   "title": "login",
-   "icon": "tabler:login",
-   "active": true
-  }
+      "id": 2,
+      "path": "/homeroom",
+      "title": "Lớp Chủ Nhiệm",
+      "icon": "mdi:account-tie",
+      "active": true
+    },
+    {
+      "id": 3,
+      "path": "/classesteaching",
+      "title": "Lớp đang giảng dạy",
+      "icon": "mdi:book-open",
+      "active": true
+    },
+    {
+      "id": 4,
+      "path": "/teaching",
+      "title": "Phân công giảng dạy",
+      "icon": "mdi:clipboard-text-outline",
+      "active": true
+    },
+    {
+      "id": 5,
+      "path": "/authentication/login",
+      "title": "login",
+      "icon": "tabler:login",
+      "active": true
+    }
+  ],
+  "user": [
+    {
+      "id": 1,
+      "path": "/",
+      "title": "dashboard.title",
+      "icon": "mingcute:home-1-fill",
+      "active": true
+    },
+    {
+      "id": 2,
+      "path": "/authentication/login",
+      "title": "login",
+      "icon": "tabler:login",
+      "active": true
+    }
   ]
 }

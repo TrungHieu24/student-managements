@@ -95,7 +95,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit_logs.index');
     Route::get('/teacher-history', [AuditLogController::class, 'getTeacherHistory']);
-
+    Route::get('/user-history', [AuditLogController::class, 'getUserHistory']);
+    Route::get('/subject-history', [AuditLogController::class, 'getSubjectHistory']);
+    Route::get('/class-history', [ClassController::class, 'history']);
 
 
     // 🔓 Đăng xuất
