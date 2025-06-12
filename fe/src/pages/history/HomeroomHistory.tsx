@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
 import {
   Box,
   Typography,
@@ -28,7 +28,7 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import type { SelectChangeEvent } from '@mui/material/Select';
 
-interface UserHistory {
+interface HomeroomAuditLog {
   id: number;
   table_name: string;
   record_id: number;
@@ -46,7 +46,7 @@ interface UserHistory {
 }
 
 interface ApiResponse {
-  data: UserHistory[];
+  data: HomeroomAuditLog[];
   meta: {
     current_page: number;
     last_page: number;
@@ -55,9 +55,9 @@ interface ApiResponse {
   };
 }
 
-const UserHistory: React.FC = () => {
+const HomeroomHistory: React.FC = () => {
   const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-  const [history, setHistory] = useState<UserHistory[]>([]);
+  const [history, setHistory] = useState<HomeroomAuditLog[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
@@ -73,9 +73,9 @@ const UserHistory: React.FC = () => {
 
       const token = localStorage.getItem('token');
 
-      const response = await axios.get<ApiResponse>(`/api/audit-logs`, {
+      const response = await axios.get<ApiResponse>(`${API_BASE_URL}/api/audit-logs`, {
         params: {
-          table_name: 'users',
+          table_name: 'students', // Changed table_name to 'students'
           page: page + 1,
           per_page: rowsPerPage,
           action_type: selectedActionType,
@@ -86,63 +86,27 @@ const UserHistory: React.FC = () => {
           "ngrok-skip-browser-warning": "true",
           'Authorization': `Bearer ${token}`
         },
-        baseURL: API_BASE_URL
       });
 
-      const processedData = response.data.data.reduce((acc: UserHistory[], curr: UserHistory) => {
-        const existingRecord = acc.find(
-          (record) =>
-            record.record_id === curr.record_id &&
-            record.action_type === curr.action_type &&
-            record.changed_at === curr.changed_at
-        );
+      const processedData = response.data.data;
 
-        if (existingRecord && curr.action_type === 'CREATE') {
-          existingRecord.new_values = {
-            ...existingRecord.new_values,
-            ...curr.new_values
-          };
-          return acc;
-        }
-
-        return [...acc, curr];
-      }, []);
-
-      processedData.sort((a: UserHistory, b: UserHistory) => {
+      processedData.sort((a: HomeroomAuditLog, b: HomeroomAuditLog) => {
         return new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime();
       });
 
-      const sanitizedData = processedData.map((record: UserHistory) => {
-        const sanitized = { ...record };
-
-        if (sanitized.old_values) {
-          const oldValues = { ...sanitized.old_values };
-          if (oldValues.password) oldValues.password = '********';
-          if (oldValues.remember_token) oldValues.remember_token = '********';
-          sanitized.old_values = oldValues;
-        }
-
-        if (sanitized.new_values) {
-          const newValues = { ...sanitized.new_values };
-          if (newValues.password) newValues.password = '********';
-          if (newValues.remember_token) newValues.remember_token = '********';
-          sanitized.new_values = newValues;
-        }
-
-        return sanitized;
+      startTransition(() => {
+        setHistory(processedData);
+        setTotal(response.data.meta.total || 0);
       });
-
-      setHistory(sanitizedData);
-      setTotal(response.data.meta.total || 0);
 
     } catch (error: any) {
       console.error('Error details:', error);
       console.error('Error response:', error.response);
       console.error('Error message:', error.message);
 
-      let errorMessage = 'Không thể tải lịch sử người dùng. Vui lòng thử lại sau.';
+      let errorMessage = 'Không thể tải lịch sử học sinh. Vui lòng thử lại sau.';
 
-      if (error.response) {
+      if (axios.isAxiosError(error) && error.response) {
         console.error('Server error response:', error.response.data);
         if (error.response.status === 401) {
           errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
@@ -220,59 +184,42 @@ const UserHistory: React.FC = () => {
     }
   };
 
-  const renderJsonField = (data: any) => {
+  const renderStudentInfoField = (data: any) => {
     if (data === null || data === undefined) {
       return <span style={{ color: '#999', fontStyle: 'italic' }}>null</span>;
     }
 
     try {
-      const sanitizedData = { ...data };
-      if (sanitizedData.password) {
-        sanitizedData.password = '********';
-      }
-      if (sanitizedData.remember_token) {
-        sanitizedData.remember_token = '********';
-      }
-      if (sanitizedData.generated_password) {
-        delete sanitizedData.generated_password;
-      }
-
-      const formattedData = Object.entries(sanitizedData).map(([key, value]) => {
+      const studentFields = ['name', 'gender', 'birthday', 'email', 'phone', 'address', 'class_id'];
+      const formattedData = Object.entries(data)
+        .filter(([key]) => studentFields.includes(key)) // Only show specified student fields
+        .map(([key, value]) => {
         if (value === null) return null;
 
-        if (key.includes('_at') && typeof value === 'string') {
-          try {
-            if (key === 'updated_at') {
-              return null;
+        if (key === 'birthday' && typeof value === 'string') {
+            try {
+                value = format(new Date(value), 'dd/MM/yyyy', { locale: vi });
+            } catch (e) {
+                // Keep original value if formatting fails
             }
-            value = format(new Date(value), 'HH:mm:ss dd/MM/yyyy', { locale: vi });
-          } catch (e) {
-          }
         }
-
-        if (typeof value === 'boolean') {
-          value = value ? 'Có' : 'Không';
-        }
-
-        if (key === 'role') {
-          const roleMap: { [key: string]: string } = {
-            'ADMIN': 'Quản trị viên',
-            'TEACHER': 'Giáo viên',
-            'USER': 'Người dùng'
-          };
-          value = roleMap[value as string] || value;
+        if (key === 'gender') {
+            const genderMap: { [key: string]: string } = {
+                'Nam': 'Nam',
+                'Nữ': 'Nữ',
+                'Khác': 'Khác'
+            };
+            value = genderMap[value as string] || value;
         }
 
         const fieldMap: { [key: string]: string } = {
-          'name': 'Tên',
+          'name': 'Họ và tên',
+          'gender': 'Giới tính',
+          'birthday': 'Ngày sinh',
           'email': 'Email',
-          'role': 'Vai trò',
-          'created_at': 'Ngày tạo',
-          'updated_at': 'Ngày cập nhật',
-          'id': 'ID',
-          'is_first_login': 'Đăng nhập lần đầu',
-          'email_verified_at': 'Xác thực email',
-          'avatar': 'Ảnh đại diện'
+          'phone': 'SĐT',
+          'address': 'Địa chỉ',
+          'class_id': 'ID Lớp',
         };
 
         return (
@@ -297,9 +244,10 @@ const UserHistory: React.FC = () => {
         </div>
       );
     } catch (error) {
-      return <span style={{ color: 'red' }}>Invalid JSON</span>;
+      return <span style={{ color: 'red' }}>Invalid Data</span>;
     }
   };
+
 
   const renderPasswordField = (values: any, id: number) => {
     if (values?.generated_password) {
@@ -358,13 +306,13 @@ const UserHistory: React.FC = () => {
     <Box sx={{ p: 3, backgroundColor: '#21222D', minHeight: '100vh', color: '#fff' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" gutterBottom sx={{ color: '#fff' }}>
-          Lịch sử người dùng
+          Lịch sử chủ nhiệm
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <FormControl sx={{ 
-            minWidth: 150, 
-            height: '40px', 
-            bgcolor: '#333645', 
+          <FormControl sx={{
+            minWidth: 150,
+            height: '40px',
+            bgcolor: '#333645',
             borderRadius: '4px',
             '& .MuiOutlinedInput-root': {
               height: '40px',
@@ -374,12 +322,12 @@ const UserHistory: React.FC = () => {
               value={selectedActionType}
               onChange={handleActionTypeChange}
               displayEmpty
-              sx={{ 
-                color: '#fff', 
+              sx={{
+                color: '#fff',
                 height: '40px',
-                '.MuiOutlinedInput-notchedOutline': { borderColor: '#666' }, 
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#888' }, 
-                '.MuiSvgIcon-root': { color: '#fff' } 
+                '.MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#888' },
+                '.MuiSvgIcon-root': { color: '#fff' }
               }}
             >
               <MenuItem value="">Tất cả</MenuItem>
@@ -393,11 +341,11 @@ const UserHistory: React.FC = () => {
             startIcon={<Refresh />}
             onClick={fetchHistory}
             disabled={loading}
-            sx={{ 
-              color: '#fff', 
-              borderColor: '#fff', 
+            sx={{
+              color: '#fff',
+              borderColor: '#fff',
               minWidth: 150,
-              height: '40px' 
+              height: '40px'
             }}
           >
             Làm mới
@@ -419,7 +367,6 @@ const UserHistory: React.FC = () => {
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thời gian</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>ID</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Hành động</TableCell>
-                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Người thực hiện</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Mật khẩu được tạo</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin cũ</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin mới</TableCell>
@@ -446,29 +393,20 @@ const UserHistory: React.FC = () => {
                         sx={{ color: '#fff' }}
                       />
                     </TableCell>
-                    <TableCell sx={{ color: '#fff' }}>
-                      {record.user ? (
-                        <Tooltip title={`${record.user.email} (${record.user.role})`}>
-                          <span>{record.user.name}</span>
-                        </Tooltip>
-                      ) : (
-                        <span style={{ color: '#999', fontStyle: 'italic' }}>Unknown User</span>
-                      )}
-                    </TableCell>
                     <TableCell>
                       {record.action_type === 'CREATE' && renderPasswordField(record.new_values, record.id)}
                     </TableCell>
                     <TableCell>
-                      {renderJsonField(record.old_values)}
+                      {renderStudentInfoField(record.old_values)}
                     </TableCell>
                     <TableCell>
-                      {renderJsonField(record.new_values)}
+                      {renderStudentInfoField(record.new_values)}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ backgroundColor: '#333645' }}>
+                  <TableCell colSpan={6} align="center" sx={{ backgroundColor: '#333645' }}>
                     <Typography variant="body1" sx={{ py: 4, color: 'text.secondary' }}>
                       Không có dữ liệu lịch sử
                     </Typography>
@@ -496,7 +434,7 @@ const UserHistory: React.FC = () => {
             '.MuiTablePagination-displayedRows': {
               color: '#fff',
             },
-            '.MuiTablePagination-select': { 
+            '.MuiTablePagination-select': {
                 color: '#fff',
             },
             '.MuiSelect-icon': {
@@ -504,7 +442,7 @@ const UserHistory: React.FC = () => {
             },
             '.MuiTablePagination-actions': {
               color: '#fff',
-              '& .MuiIconButton-root': { 
+              '& .MuiIconButton-root': {
                 color: '#fff',
               }
             },
@@ -515,4 +453,4 @@ const UserHistory: React.FC = () => {
   );
 };
 
-export default UserHistory;
+export default HomeroomHistory;

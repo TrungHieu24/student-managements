@@ -31,11 +31,12 @@ const ListClass = lazy(() => import('../pages/listclass/ListClass'));
 const Homeroom = lazy<() => ReactElement>(() => import('../pages/homeroom/Homeroom'));
 const ClassesTeaching = lazy(() => import('../pages/classes-teaching/ClassesTeaching'));
 const Teaching = lazy<() => ReactElement>(() => import('../pages/teaching-assignment/Teaching'));
-const LoginHistory = lazy(() =>  import('../pages/login-history/LoginHistory'));
+const LoginHistory = lazy(() =>  import('../pages/history/LoginHistory'));
 const TeacherHistory = lazy(() =>  import('../pages/history/TeacherHistory'));
 const UserHistory = lazy(() =>  import('../pages/history/UserHistory'));
 const ClassHistory = lazy(() =>  import('../pages/history/ClassHistory'));
 const SubjectHistory = lazy(() =>  import('../pages/history/SubjectHistory'));
+const HomeroomHistory = lazy(() =>  import('../pages/history/HomeroomHistory'));
 const UserManagement = lazy(() =>  import('../pages/user-management/UserManagement'));
 const FirstTimePasswordChange = lazy(() => import('../pages/authentication/FirstTimePasswordChange'));
 export const FIRST_TIME_PASSWORD_CHANGE_PATH = 'first-time-password-change';
@@ -87,6 +88,7 @@ const routes: RouteObject[] = [
           { path: 'userhistory', element: <UserHistory/>},
           { path: 'classhistory', element: <ClassHistory/>},
           { path: 'subjecthistory', element: <SubjectHistory/>},
+          { path: 'homeroomhistory', element: <HomeroomHistory/>},
         ],
       },
       {

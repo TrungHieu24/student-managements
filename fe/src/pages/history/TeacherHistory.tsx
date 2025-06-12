@@ -19,7 +19,6 @@ import {
   TextField,
   InputAdornment,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
 } from '@mui/material';
@@ -30,20 +29,6 @@ import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import type { SelectChangeEvent } from '@mui/material/Select';
 
-// Add axios interceptor to include auth token
-axios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 interface TeacherHistory {
   id: number;
   table_name: string;
@@ -52,8 +37,6 @@ interface TeacherHistory {
   user_id: number;
   old_values: any;
   new_values: any;
-  ip_address: string;
-  user_agent: string;
   changed_at: string;
   user: {
     id: number;
@@ -74,6 +57,7 @@ interface ApiResponse {
 }
 
 const TeacherHistory: React.FC = () => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const { t } = useTranslation();
   const [history, setHistory] = useState<TeacherHistory[]>([]);
   const [page, setPage] = useState(0);
@@ -92,6 +76,8 @@ const TeacherHistory: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      const token = localStorage.getItem('token');
+
       const response = await axios.get<ApiResponse>(`/api/teacher-history`, {
         params: {
           page: page + 1,
@@ -100,12 +86,13 @@ const TeacherHistory: React.FC = () => {
         },
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          "ngrok-skip-browser-warning": "true",
+          'Authorization': `Bearer ${token}`
         },
-        baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
+        baseURL: API_BASE_URL
       });
 
-      // Process data to remove duplicates and sanitize sensitive data
       const processedData = response.data.data.reduce((acc: TeacherHistory[], curr: TeacherHistory) => {
         const existingRecord = acc.find(
           (record) =>
@@ -125,16 +112,13 @@ const TeacherHistory: React.FC = () => {
         return [...acc, curr];
       }, []);
 
-      // Sort by changed_at in descending order
       processedData.sort((a, b) => 
         new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
       );
 
-      // Sanitize passwords and filter for changed fields in UPDATE actions
       const sanitizedData = processedData.map((record: TeacherHistory) => {
         const sanitized = { ...record };
 
-        // Explicitly remove updated_at from old_values and new_values for all action types
         if (sanitized.old_values && typeof sanitized.old_values === 'object') {
           delete sanitized.old_values.updated_at;
         }
@@ -148,17 +132,14 @@ const TeacherHistory: React.FC = () => {
           const changedOldValues: { [key: string]: any } = {};
           const changedNewValues: { [key: string]: any } = {};
 
-          // Always include 'subjects' and 'teaching_assignments' if they exist, regardless of change
           if ('subjects' in oldVals) changedOldValues.subjects = oldVals.subjects;
           if ('subjects' in newVals) changedNewValues.subjects = newVals.subjects;
           if ('teaching_assignments' in oldVals) changedOldValues.teaching_assignments = oldVals.teaching_assignments;
           if ('teaching_assignments' in newVals) changedNewValues.teaching_assignments = newVals.teaching_assignments;
 
-          // Collect all unique keys from both old and new values
           const allKeys = new Set([...Object.keys(oldVals), ...Object.keys(newVals)]);
 
           for (const key of allKeys) {
-            // Skip 'subjects' and 'teaching_assignments' as they are handled above
             if (key === 'subjects' || key === 'teaching_assignments') {
                 continue;
             }
@@ -166,17 +147,13 @@ const TeacherHistory: React.FC = () => {
             const oldValue = oldVals[key];
             const newValue = newVals[key];
 
-            // Deep comparison for objects/arrays, otherwise strict equality for primitives
             let hasChanged = false;
             if (typeof oldValue === 'object' && oldValue !== null && typeof newValue === 'object' && newValue !== null) {
-                // If both are objects/arrays, compare their stringified versions
                 hasChanged = JSON.stringify(oldValue) !== JSON.stringify(newValue);
             } else {
-                // For primitive types (string, number, boolean, null, undefined)
                 hasChanged = oldValue !== newValue;
             }
 
-            // Also consider if a key exists in one but not the other
             if (hasChanged || !(key in oldVals) || !(key in newVals)) {
                 if (key in oldVals) changedOldValues[key] = oldValue;
                 if (key in newVals) changedNewValues[key] = newValue;
@@ -185,7 +162,7 @@ const TeacherHistory: React.FC = () => {
           sanitized.old_values = changedOldValues;
           sanitized.new_values = changedNewValues;
 
-        } else { // For CREATE and DELETE, sanitize all values
+        } else { 
           if (sanitized.old_values) {
             const oldValues = { ...sanitized.old_values };
             if (oldValues.password) oldValues.password = '********';
@@ -201,11 +178,9 @@ const TeacherHistory: React.FC = () => {
           }
         }
 
-        // Special handling for generated_password, keep it for display in password field only if CREATE
         if (sanitized.action_type === 'CREATE' && record.new_values?.generated_password) {
             sanitized.new_values = { ...sanitized.new_values, generated_password: record.new_values.generated_password };
         } else if (sanitized.new_values?.generated_password) {
-            // Remove generated_password for other action types or if not present in new_values for CREATE
             delete sanitized.new_values.generated_password;
         }
 
@@ -215,7 +190,6 @@ const TeacherHistory: React.FC = () => {
       setHistory(sanitizedData);
       setTotal(response.data.meta.total || 0);
 
-      // Add logging for inspection
       console.log('Sanitized History Data:', sanitizedData);
       sanitizedData.forEach(record => {
         if (record.action_type === 'UPDATE') {
@@ -257,7 +231,6 @@ const TeacherHistory: React.FC = () => {
     const initializeData = async () => {
       setLoading(true);
       try {
-        // Fetch subjects and classes first
         const [subjectsRes, classesRes] = await Promise.all([
           axios.get('/api/subjects', {
             headers: {
@@ -266,7 +239,7 @@ const TeacherHistory: React.FC = () => {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               "ngrok-skip-browser-warning": "true"
             },
-            baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
+            baseURL: API_BASE_URL
           }),
           axios.get('/api/classes', {
             headers: {
@@ -275,7 +248,7 @@ const TeacherHistory: React.FC = () => {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               "ngrok-skip-browser-warning": "true"
             },
-            baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
+            baseURL: API_BASE_URL
           })
         ]);
 
@@ -303,7 +276,6 @@ const TeacherHistory: React.FC = () => {
         }
         setClasses(classMap);
 
-        // Then fetch user info
         await axios.get('/api/user', {
           headers: {
             'Accept': 'application/json',
@@ -311,14 +283,13 @@ const TeacherHistory: React.FC = () => {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             "ngrok-skip-browser-warning": "true"
           },
-          baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          baseURL: API_BASE_URL
         }).then(response => {
           if (response.data && response.data.role) {
             setUserRole(response.data.role);
           }
         });
 
-        // Finally, fetch history
         await fetchHistory();
 
       } catch (e: any) {
@@ -393,7 +364,6 @@ const TeacherHistory: React.FC = () => {
   const formatSubjectIds = (subjectIds: any) => {
     if (!subjectIds) return '';
     
-    // Handle both string and array formats
     const ids = typeof subjectIds === 'string' ? subjectIds.split(',') : subjectIds;
     
     return ids
@@ -465,16 +435,13 @@ const TeacherHistory: React.FC = () => {
       if (sanitizedData.remember_token) {
         sanitizedData.remember_token = '********';
       }
-      // Don't remove generated_password here - it's handled separately in the password field
       if (sanitizedData.generated_password) {
         delete sanitizedData.generated_password;
       }
 
-      // Remove duplicate fields
       const uniqueFields = new Set();
       const formattedData = Object.entries(sanitizedData)
         .filter(([key, value]) => {
-          // Exclude 'updated_at' from display in old/new values
           if (key === 'updated_at') {
             return false;
           }
@@ -487,7 +454,6 @@ const TeacherHistory: React.FC = () => {
             try {
               value = format(new Date(value), 'HH:mm:ss dd/MM/yyyy', { locale: vi });
             } catch (e) {
-              // If date parsing fails, keep original value
             }
           }
 
@@ -495,12 +461,10 @@ const TeacherHistory: React.FC = () => {
             value = value ? 'Có' : 'Không';
           }
 
-          // Handle subjects field
           if (key === 'subjects') {
             value = formatSubjectIds(value);
           }
 
-          // Handle teaching_assignments field
           if (key === 'teaching_assignments') {
             const assignmentsArray = Array.isArray(value) ? value : [];
 
@@ -508,7 +472,6 @@ const TeacherHistory: React.FC = () => {
             console.log('Current classes map:', classes);
             console.log('Current subjects map:', subjects);
 
-            // Add detailed logging for each assignment
             assignmentsArray.forEach((assignment, idx) => {
               console.log(`Assignment ${idx}:`, assignment);
               console.log(`  Class ID: ${assignment.class_id}, Class Name: ${classes[assignment.class_id]}`);
@@ -613,31 +576,50 @@ const TeacherHistory: React.FC = () => {
         <Typography variant="h4" gutterBottom sx={{ color: '#fff' }}>
           Lịch sử giáo viên
         </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={fetchHistory}
-          disabled={loading}
-          sx={{ color: '#fff', borderColor: '#fff' }}
-        >
-          Làm mới
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <FormControl sx={{
+            minWidth: 150,
+            height: '40px',
+            bgcolor: '#333645',
+            borderRadius: '4px',
+            '& .MuiOutlinedInput-root': {
+              height: '40px',
+            }
+          }} size="small">
+            <Select
+              value={selectedActionType}
+              onChange={handleActionTypeChange}
+              displayEmpty
+              sx={{
+                color: '#fff',
+                height: '40px',
+                '.MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#888' },
+                '.MuiSvgIcon-root': { color: '#fff' }
+              }}
+            >
+              <MenuItem value="">Tất cả</MenuItem>
+              <MenuItem value="CREATE">Tạo mới</MenuItem>
+              <MenuItem value="UPDATE">Cập nhật</MenuItem>
+              <MenuItem value="DELETE">Xóa</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchHistory}
+            disabled={loading}
+            sx={{
+              color: '#fff',
+              borderColor: '#fff',
+              minWidth: 150,
+              height: '40px'
+            }}
+          >
+            Làm mới
+          </Button>
+        </Box>
       </Box>
-
-      <FormControl sx={{ minWidth: 120, mb: 2, bgcolor: '#333645', borderRadius: '4px' }} size="small">
-        <InputLabel sx={{ color: '#fff' }}>Hành động</InputLabel>
-        <Select
-          value={selectedActionType}
-          onChange={handleActionTypeChange}
-          label="Hành động"
-          sx={{ color: '#fff', '.MuiOutlinedInput-notchedOutline': { borderColor: '#666' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#888' }, '.MuiSvgIcon-root': { color: '#fff' } }}
-        >
-          <MenuItem value="">Tất cả</MenuItem>
-          <MenuItem value="CREATE">Tạo mới</MenuItem>
-          <MenuItem value="UPDATE">Cập nhật</MenuItem>
-          <MenuItem value="DELETE">Xóa</MenuItem>
-        </Select>
-      </FormControl>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -657,8 +639,6 @@ const TeacherHistory: React.FC = () => {
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Mật khẩu được tạo</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin cũ</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin mới</TableCell>
-                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>IP</TableCell>
-                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>User Agent</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -699,23 +679,6 @@ const TeacherHistory: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       {renderJsonField(record.new_values)}
-                    </TableCell>
-                    <TableCell sx={{ color: '#fff' }}>
-                      <Tooltip title={record.ip_address}>
-                        <span>{record.ip_address}</span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell sx={{ color: '#fff' }}>
-                      <Tooltip title={record.user_agent}>
-                        <div style={{ 
-                          maxWidth: '200px', 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {record.user_agent}
-                        </div>
-                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))

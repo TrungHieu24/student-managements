@@ -138,6 +138,13 @@
     },
     {
       "id": 5,
+      "path": "/homeroomhistory",
+      "title": "Lịch sử lớp chủ nhiệm",
+      "icon": "material-symbols:history-rounded",
+      "active": true
+    },
+    {
+      "id":6,
       "path": "/authentication/login",
       "title": "login",
       "icon": "tabler:login",

@@ -9,28 +9,27 @@ use App\Models\User;
 
 class ProfileController extends Controller
 {
-    /**
-     * Lấy thông tin người dùng hiện tại
-     */
     public function show(Request $request)
     {
-
         $user = $request->user();
-
+        
+        $avatarUrl = null;
+        if ($user->avatar) {
+            if (str_starts_with($user->avatar, 'http')) {
+                $avatarUrl = $user->avatar;
+            } else {
+                $avatarUrl = asset('storage/' . $user->avatar);
+            }
+        }
         
         return response()->json([
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role,
-            'avatar' => $user->avatar ? asset($user->avatar) : null,
-        ], 200, [], JSON_UNESCAPED_SLASHES);
-        
+            'avatar' => $avatarUrl,
+        ]);
     }
-    
 
-    /**
-     * Cập nhật thông tin người dùng (chỉ tên)
-     */
     public function update(Request $request)
     {
         /** @var \App\Models\User $user */
@@ -43,12 +42,23 @@ class ProfileController extends Controller
         $user->name = $validated['name'];
         $user->save();
 
-        return response()->json($user, 200);
+        $avatarUrl = null;
+        if ($user->avatar) {
+            if (str_starts_with($user->avatar, 'http')) {
+                $avatarUrl = $user->avatar;
+            } else {
+                $avatarUrl = asset('storage/' . $user->avatar);
+            }
+        }
+
+        return response()->json([
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'avatar' => $avatarUrl,
+        ]);
     }
 
-    /**
-     * Tải ảnh đại diện (avatar) lên
-     */
     public function uploadAvatar(Request $request)
     {
         $request->validate([
@@ -58,21 +68,17 @@ class ProfileController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (
-            $user->avatar &&
-            Storage::disk('public')->exists(str_replace('/storage/', '', $user->avatar))
-        ) {
-            Storage::disk('public')->delete(str_replace('/storage/', '', $user->avatar));
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
         }
 
-        // Lưu ảnh mới
         $path = $request->file('avatar')->store('avatars', 'public');
-        $user->avatar = '/storage/' . $path;
+        $user->avatar = $path;
         $user->save();
 
         return response()->json([
             'message' => 'Tải ảnh lên thành công',
-            'avatar' => $user->avatar,
+            'avatar' => asset('storage/' . $path),
         ]);
     }
 }

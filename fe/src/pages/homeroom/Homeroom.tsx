@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     Typography, Box, CircularProgress, Alert, Paper, Table, TableBody,
     TableCell, TableContainer, TableHead, TableRow, Stack,
@@ -6,16 +6,16 @@ import {
     TextField, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import { Edit, Delete, Add as AddIcon } from '@mui/icons-material';
+import { Edit, Delete, Add as AddIcon, Refresh } from '@mui/icons-material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import axios, { isAxiosError, AxiosError } from 'axios';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import Snackbar from '@mui/material/Snackbar';
 import 'dayjs/locale/vi';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-
+import type { SelectChangeEvent } from '@mui/material/Select';
 
 interface TeacherNested {
     id: number;
@@ -30,7 +30,7 @@ interface Student {
     email: string | null;
     phone: string | null;
     address: string | null;
-     class_id: number; 
+     class_id: number | null; 
      class?: { 
          id: number;
          name: string;
@@ -97,7 +97,6 @@ interface SubjectData {
     name: string;
 }
 
-
 const sortVietnameseNames = (a: Student, b: Student): number => {
     const nameA = a.name.trim().toLowerCase();
     const nameB = b.name.trim().toLowerCase();
@@ -131,7 +130,6 @@ const sortVietnameseNames = (a: Student, b: Student): number => {
     return middleA.localeCompare(middleB, 'vi', { sensitivity: 'base' });
 };
 
-
 const Homeroom = () => {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     const [homeroomClasses, setHomeroomClasses] = useState<HomeroomClass[]>([]);
@@ -141,6 +139,127 @@ const Homeroom = () => {
     const [loadingAllStatistics, setLoadingAllStatistics] = useState(false);
     const [allStatisticsError, setAllStatisticsError] = useState<string | null>(null);
 
+    const fetchHomeroomClassesWithStats = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        setLoadingAllStatistics(true);
+        setAllStatisticsError(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
+                setLoading(false);
+                setLoadingAllStatistics(false);
+                return;
+            }
+
+            const classesResponse = await axios.get<HomeroomClass[]>(`${API_BASE_URL}/api/teacher/classes/homeroom`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                     "ngrok-skip-browser-warning": "true",
+                }
+            });
+
+            const classesData = Array.isArray(classesResponse.data) ? classesResponse.data : [];
+
+            if (classesData.length === 0) {
+                setHomeroomClasses([]);
+                setLoading(false);
+                setLoadingAllStatistics(false);
+                return;
+            }
+
+            const classesWithStats = await Promise.all(classesData.map(async (classItem) => {
+                try {
+                    const [averagesRes, performanceRes] = await Promise.all([
+                        axios.get<{ average_subject_scores: ClassSubjectAverage[] }>(`${API_BASE_URL}/api/classes/${classItem.id}/average-subject-scores`, {
+                            headers: {
+                              Authorization: `Bearer ${token}`, 
+                              "ngrok-skip-browser-warning": "true",
+                              'Content-Type': 'application/json' 
+                            },
+                        }),
+                         axios.get<{ performance_summary: ClassPerformanceSummaryData }>(`${API_BASE_URL}/api/classes/${classItem.id}/performance-summary`, {
+                            headers: {
+                              Authorization: `Bearer ${token}`, 
+                              "ngrok-skip-browser-warning": "true",
+                              'Content-Type': 'application/json' 
+                            },
+                         }),
+                    ]);
+
+                    const studentsWithClass = classItem.students ? classItem.students.map(student => ({
+                         ...student,
+                         class: { id: classItem.id, name: classItem.name, grade: classItem.grade }
+                     })) : [];
+
+
+                    const sortedStudents = studentsWithClass.sort(sortVietnameseNames);
+
+
+                    return {
+                        ...classItem,
+                        students: sortedStudents,
+                        average_subject_scores: Array.isArray(averagesRes.data?.average_subject_scores) ? averagesRes.data.average_subject_scores : [],
+                        performance_summary: performanceRes.data?.performance_summary || {},
+                        loadingStatistics: false,
+                        statisticsError: null,
+                    };
+                } catch (statsErr: any) {
+                    console.error(`Error fetching stats for class ${classItem.name}:`, statsErr.response?.data || statsErr);
+                    let errorMsg = 'Lỗi tải thống kê.';
+                     if (isAxiosError(statsErr) && statsErr.response) {
+                         errorMsg = statsErr.response.data?.message || `Lỗi tải thống kê (Status: ${statsErr.response.status})`;
+                     }
+                     const studentsWithClass = classItem.students ? classItem.students.map(student => ({
+                          ...student,
+                          class: { id: classItem.id, name: classItem.name, grade: classItem.grade }
+                      })) : [];
+
+                    return {
+                        ...classItem,
+                        students: studentsWithClass.sort(sortVietnameseNames),
+                        average_subject_scores: [],
+                        performance_summary: {},
+                        loadingStatistics: false,
+                        statisticsError: errorMsg,
+                    };
+                }
+            }));
+
+            setHomeroomClasses(classesWithStats);
+
+
+        } catch (err: any) {
+            console.error("Error fetching homeroom classes:", err.response?.data || err);
+            if (axios.isAxiosError(err) && err.response) {
+                const axiosError = err as AxiosError<any>;
+                const apiMessage = axiosError.response?.data?.message;
+                const statusCode = axiosError.response?.status;
+                if (statusCode === 401 || statusCode === 403) {
+                    setError('Phiên đăng nhập hết hạn hoặc bạn không có quyền truy cập. Vui lòng đăng nhập lại.');
+                } else if (statusCode === 404) {
+                    setError('Bạn chưa được phân công làm giáo viên chủ nhiệm lớp nào.');
+                }
+                else {
+                    setError(`Lỗi tải danh sách lớp chủ nhiệm: ${apiMessage || `Status ${statusCode}`}`);
+                }
+            } else {
+                setError('Không thể kết nối đến máy chủ API hoặc có lỗi khi tải dữ liệu.');
+            }
+            setHomeroomClasses([]);
+             setAllStatisticsError(error);
+        } finally {
+            setLoading(false);
+            setLoadingAllStatistics(false);
+        }
+    }, [API_BASE_URL]);
+
+    useEffect(() => {
+        fetchHomeroomClassesWithStats();
+    }, [fetchHomeroomClassesWithStats]);
 
       const [notification, setNotification] = useState<{
     open: boolean;
@@ -164,7 +283,7 @@ const Homeroom = () => {
     const [newStudentData, setNewStudentData] = useState({
         name: '',
         gender: '',
-        birthday: null as Date | null,
+        birthday: null as Dayjs | null,
         email: '',
         phone: '',
         address: '',
@@ -188,10 +307,8 @@ const Homeroom = () => {
     const [classesError, setClassesError] = useState<string | null>(null);
     const [selectedGrade, setSelectedGrade] = useState<string>('');
 
-    // 1. Thêm state chọn học kỳ cho popup điểm
     const [selectedSemester, setSelectedSemester] = useState<string>('1');
 
-    // 1. Thêm state để biết đang thêm điểm cho môn/loại điểm nào
     const [addScoreContext, setAddScoreContext] = useState<{ subject_id: string, type: string } | null>(null);
 
     const [subjects, setSubjects] = useState<SubjectData[]>([]);
@@ -316,7 +433,7 @@ const Homeroom = () => {
           console.error("Error fetching subjects:", err);
           if (isAxiosError(err) && err.response) {
               const axiosError = err as AxiosError<any>;
-              if (axiosError.response && axiosError.response.data && axiosError.response.data.message) {
+              if (axiosError.response?.data && axiosError.response.data.message) {
                   setSubjectError(axiosError.response.data.message);
               } else {
                   setSubjectError('Không thể tải danh sách môn học.');
@@ -374,12 +491,12 @@ const Homeroom = () => {
         setAddStudentError(null);
     };
 
-    const handleNewStudentInputChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    const handleNewStudentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string | number>) => {
         const { name, value } = e.target;
          setNewStudentData(prev => ({ ...prev, [name as string]: value }));
     };
 
-     const handleNewStudentDateChange = (date: Date | null) => {
+     const handleNewStudentDateChange = (date: Dayjs | null) => {
          setNewStudentData(prev => ({ ...prev, birthday: date }));
      };
 
@@ -387,6 +504,11 @@ const Homeroom = () => {
     const handleSaveNewStudent = async () => {
         if (!homeroomClasses || homeroomClasses.length === 0) {
             setAddStudentError('Không tìm thấy lớp chủ nhiệm để thêm học sinh.');
+            setNotification({
+                open: true,
+                message: 'Không tìm thấy lớp chủ nhiệm để thêm học sinh.',
+                severity: 'error',
+            });
             return;
         }
 
@@ -394,6 +516,11 @@ const Homeroom = () => {
 
         if (!newStudentData.name || !newStudentData.gender) {
             setAddStudentError('Vui lòng điền đủ Họ và tên và Giới tính.');
+            setNotification({
+                open: true,
+                message: 'Vui lòng điền đủ Họ và tên và Giới tính.',
+                severity: 'error',
+            });
             return;
         }
 
@@ -404,6 +531,11 @@ const Homeroom = () => {
             const token = localStorage.getItem('token');
             if (!token) {
                 setAddStudentError('Phiên đăng nhập hết hạn.');
+                setNotification({
+                    open: true,
+                    message: 'Phiên đăng nhập hết hạn.',
+                    severity: 'error',
+                });
                 setAddingStudent(false);
                 return;
             }
@@ -411,7 +543,7 @@ const Homeroom = () => {
             const dataToSend = {
                 name: newStudentData.name,
                 gender: newStudentData.gender,
-                birthday: newStudentData.birthday ? dayjs(newStudentData.birthday).format('YYYY-MM-DD') : null,
+                birthday: newStudentData.birthday ? newStudentData.birthday.format('YYYY-MM-DD') : null,
                 email: newStudentData.email || null,
                 phone: newStudentData.phone || null,
                 address: newStudentData.address || null,
@@ -441,17 +573,29 @@ const Homeroom = () => {
 
         } catch (err: any) {
              console.error("Error adding student:", err.response || err);
-             if (isAxiosError(err) && err.response) {
+             if (axios.isAxiosError(err) && err.response) {
                  const axiosError = err as AxiosError<any>;
-                 if (axiosError.response.data && axiosError.response.data.errors) {
-                   setAddStudentError("Lỗi nhập liệu: " + Object.values(axiosError.response.data.errors).flat().join(', '));
-                 } else if (axiosError.response.data && axiosError.response.data.message) {
-                   setAddStudentError("Lỗi: " + axiosError.response.data.message);
-                 } else {
-                   setAddStudentError("Lỗi khi thêm học sinh.");
+                 const responseData = axiosError.response.data;
+                 let errorMessage = 'Lỗi khi thêm học sinh.';
+                 if (responseData && responseData.errors) {
+                   errorMessage = "Lỗi nhập liệu: " + Object.values(responseData.errors).flat().join(', ');
+                 } else if (responseData && responseData.message) {
+                   errorMessage = "Lỗi: " + responseData.message;
                  }
+                 setAddStudentError(errorMessage);
+                 setNotification({
+                    open: true,
+                    message: errorMessage,
+                    severity: 'error',
+                });
              } else {
-               setAddStudentError("Lỗi không xác định khi thêm học sinh.");
+               const genericErrorMessage = "Lỗi không xác định khi thêm học sinh.";
+               setAddStudentError(genericErrorMessage);
+               setNotification({
+                  open: true,
+                  message: genericErrorMessage,
+                  severity: 'error',
+              });
              }
         } finally {
             setAddingStudent(false);
@@ -473,7 +617,7 @@ const Homeroom = () => {
            }
            const response = await axios.get<ClassOption[]>(`${API_BASE_URL}/api/classes`, {
                 headers: {
-                  Authorization: `Bearer ${token}`, 
+                  Authorization: `Bearer ${token}`,
                   "ngrok-skip-browser-warning": "true",
                   'Content-Type': 'application/json' 
                 },
@@ -482,7 +626,7 @@ const Homeroom = () => {
            setClasses(filteredClasses);
          } catch (err: any) {
            console.error("Error fetching classes:", err);
-           if (isAxiosError(err) && err.response) {
+           if (axios.isAxiosError(err) && err.response) {
                const axiosError = err as AxiosError<any>;
                setClassesError(axiosError.response?.data?.message || 'Không thể tải danh sách lớp.');
            } else {
@@ -515,7 +659,13 @@ const Homeroom = () => {
          try {
              const token = localStorage.getItem('token');
              if (!token) {
-                 setDeleteStudentError('Phiên đăng nhập hết hạn.');
+                 const authErrorMessage = 'Phiên đăng nhập hết hạn.';
+                 setDeleteStudentError(authErrorMessage);
+                 setNotification({
+                    open: true,
+                    message: authErrorMessage,
+                    severity: 'error',
+                });
                  setDeletingStudent(false);
                  return;
              }
@@ -523,13 +673,35 @@ const Homeroom = () => {
                  headers: { Authorization: `Bearer ${token}` },
              });
              handleCloseDeleteStudentConfirm();
-             fetchHomeroomClassesWithStats(); 
+             fetchHomeroomClassesWithStats();
+             setNotification({
+                open: true,
+                message: `Xóa học sinh ${studentToDeleteName} thành công.`,
+                severity: 'success',
+            });
          } catch (err: any) {
               console.error("Error deleting student:", err.response || err);
-              if (isAxiosError(err) && err.response && err.response.data && err.response.data.message) {
-                setDeleteStudentError("Lỗi: " + err.response.data.message);
+              if (axios.isAxiosError(err) && err.response) {
+                  const axiosError = err as AxiosError<any>;
+                  const responseData = axiosError.response.data;
+                  let errorMessage = 'Lỗi khi xóa học sinh.';
+                  if (responseData && responseData.message) {
+                    errorMessage = "Lỗi: " + responseData.message;
+                  }
+                  setDeleteStudentError(errorMessage);
+                  setNotification({
+                    open: true,
+                    message: errorMessage,
+                    severity: 'error',
+                });
               } else {
-                setDeleteStudentError("Lỗi không xác định khi xóa học sinh.");
+                const genericErrorMessage = "Lỗi không xác định khi xóa học sinh.";
+                setDeleteStudentError(genericErrorMessage);
+                setNotification({
+                    open: true,
+                    message: genericErrorMessage,
+                    severity: 'error',
+                });
               }
          } finally {
              setDeletingStudent(false);
@@ -551,19 +723,32 @@ const Homeroom = () => {
          setEditStudentError(null);
      };
 
-     const handleEditStudentInputChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+     const handleEditStudentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string | number>) => {
          const { name, value } = e.target;
-          setStudentToEdit(prev => prev ? { ...prev, [name as string]: value } : null);
+         setStudentToEdit(prev => {
+             if (!prev) return null;
+             if (name === 'class_id') {
+                 const newClassId = value === '' ? null : Number(value);
+                 return { ...prev, [name]: newClassId, class: null } as Student;
+             }
+             return { ...prev, [name]: value } as Student;
+         });
      };
 
-    const handleEditStudentDateChange = (date: Date | null) => {
-        setStudentToEdit(prev => prev ? { ...prev, birthday: date ? dayjs(date).format('YYYY-MM-DD') : null } : null);
+    const handleEditStudentDateChange = (date: Dayjs | null) => {
+        setStudentToEdit(prev => prev ? { ...prev, birthday: date ? date.format('YYYY-MM-DD') : null } : null);
     };
 
 
      const handleSaveEditedStudent = async () => {
-         if (!studentToEdit?.id || !studentToEdit.name || !studentToEdit.gender || !studentToEdit.class_id) {
-             setEditStudentError('Vui lòng điền đủ Họ và tên, Giới tính và Lớp.');
+         if (!studentToEdit?.id || !studentToEdit.name || !studentToEdit.gender || studentToEdit.class_id === null || studentToEdit.class_id === undefined) {
+             const validationErrorMessage = 'Vui lòng điền đủ Họ và tên, Giới tính và Lớp.';
+             setEditStudentError(validationErrorMessage);
+             setNotification({
+                open: true,
+                message: validationErrorMessage,
+                severity: 'error',
+            });
              return;
          }
          setEditingStudent(true);
@@ -571,7 +756,13 @@ const Homeroom = () => {
          try {
              const token = localStorage.getItem('token');
              if (!token) {
-                 setEditStudentError('Phiên đăng nhập hết hạn.');
+                 const authErrorMessage = 'Phiên đăng nhập hết hạn.';
+                 setEditStudentError(authErrorMessage);
+                 setNotification({
+                    open: true,
+                    message: authErrorMessage,
+                    severity: 'error',
+                });
                  setEditingStudent(false);
                  return;
              }
@@ -594,19 +785,36 @@ const Homeroom = () => {
              });
              handleCloseEditStudentDialog();
              fetchHomeroomClassesWithStats();
+             setNotification({
+                open: true,
+                message: `Cập nhật thông tin học sinh ${studentToEdit.name} thành công.`,
+                severity: 'success',
+            });
          } catch (err: any) {
              console.error("Error updating student:", err.response || err);
-              if (isAxiosError(err) && err.response) {
+              if (axios.isAxiosError(err) && err.response) {
                   const axiosError = err as AxiosError<any>;
-                  if (axiosError.response.data && axiosError.response.data.errors) {
-                    setEditStudentError("Lỗi nhập liệu: " + Object.values(axiosError.response.data.errors).flat().join(', '));
-                  } else if (axiosError.response.data && axiosError.response.data.message) {
-                    setEditStudentError("Lỗi: " + axiosError.response.data.message);
-                  } else {
-                    setEditStudentError("Lỗi khi cập nhật học sinh.");
+                  const responseData = axiosError.response.data;
+                  let errorMessage = 'Lỗi khi cập nhật học sinh.';
+                  if (responseData && responseData.errors) {
+                    errorMessage = "Lỗi nhập liệu: " + Object.values(responseData.errors).flat().join(', ');
+                  } else if (responseData && responseData.message) {
+                    errorMessage = "Lỗi: " + responseData.message;
                   }
+                  setEditStudentError(errorMessage);
+                  setNotification({
+                    open: true,
+                    message: errorMessage,
+                    severity: 'error',
+                });
               } else {
-                setEditStudentError("Lỗi không xác định khi cập nhật học sinh.");
+                const genericErrorMessage = "Lỗi không xác định khi cập nhật học sinh.";
+                setEditStudentError(genericErrorMessage);
+                setNotification({
+                    open: true,
+                    message: genericErrorMessage,
+                    severity: 'error',
+                });
               }
          } finally {
              setEditingStudent(false);
@@ -618,129 +826,6 @@ const Homeroom = () => {
          const match = className.match(/^(\d+)/);
          return match ? match[1] : '';
      };
-
-
-    useEffect(() => {
-        const fetchHomeroomClassesWithStats = async () => {
-            setLoading(true);
-            setError(null);
-            setLoadingAllStatistics(true);
-            setAllStatisticsError(null);
-
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setError('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
-                    setLoading(false);
-                    setLoadingAllStatistics(false);
-                    return;
-                }
-
-                const classesResponse = await axios.get<HomeroomClass[]>(`${API_BASE_URL}/api/teacher/classes/homeroom`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                         "ngrok-skip-browser-warning": "true",
-                    }
-                });
-
-                const classesData = Array.isArray(classesResponse.data) ? classesResponse.data : [];
-
-                if (classesData.length === 0) {
-                    setHomeroomClasses([]);
-                    setLoading(false);
-                    setLoadingAllStatistics(false);
-                    return;
-                }
-
-                const classesWithStats = await Promise.all(classesData.map(async (classItem) => {
-                    try {
-                        const [averagesRes, performanceRes] = await Promise.all([
-                            axios.get<{ average_subject_scores: ClassSubjectAverage[] }>(`${API_BASE_URL}/api/classes/${classItem.id}/average-subject-scores`, {
-                                headers: {
-                                  Authorization: `Bearer ${token}`, 
-                                  "ngrok-skip-browser-warning": "true",
-                                  'Content-Type': 'application/json' 
-                                },
-                            }),
-                             axios.get<{ performance_summary: ClassPerformanceSummaryData }>(`${API_BASE_URL}/api/classes/${classItem.id}/performance-summary`, {
-                                headers: {
-                                  Authorization: `Bearer ${token}`, 
-                                  "ngrok-skip-browser-warning": "true",
-                                  'Content-Type': 'application/json' 
-                                },
-                             }),
-                        ]);
-
-                        const studentsWithClass = classItem.students ? classItem.students.map(student => ({
-                             ...student,
-                             class: { id: classItem.id, name: classItem.name, grade: classItem.grade }
-                         })) : [];
-
-
-                        const sortedStudents = studentsWithClass.sort(sortVietnameseNames);
-
-
-                        return {
-                            ...classItem,
-                            students: sortedStudents,
-                            average_subject_scores: Array.isArray(averagesRes.data?.average_subject_scores) ? averagesRes.data.average_subject_scores : [],
-                            performance_summary: performanceRes.data?.performance_summary || {},
-                            loadingStatistics: false,
-                            statisticsError: null,
-                        };
-                    } catch (statsErr: any) {
-                        console.error(`Error fetching stats for class ${classItem.name}:`, statsErr.response?.data || statsErr);
-                        let errorMsg = 'Lỗi tải thống kê.';
-                         if (isAxiosError(statsErr) && statsErr.response) {
-                             errorMsg = statsErr.response.data?.message || `Lỗi tải thống kê (Status: ${statsErr.response.status})`;
-                         }
-                         const studentsWithClass = classItem.students ? classItem.students.map(student => ({
-                              ...student,
-                              class: { id: classItem.id, name: classItem.name, grade: classItem.grade }
-                          })) : [];
-
-                        return {
-                            ...classItem,
-                            students: studentsWithClass.sort(sortVietnameseNames),
-                            average_subject_scores: [],
-                            performance_summary: {},
-                            loadingStatistics: false,
-                            statisticsError: errorMsg,
-                        };
-                    }
-                }));
-
-                setHomeroomClasses(classesWithStats);
-
-
-            } catch (err: any) {
-                console.error("Error fetching homeroom classes:", err.response?.data || err);
-                if (isAxiosError(err) && err.response) {
-                    const axiosError = err as AxiosError<any>;
-                    const apiMessage = axiosError.response.data?.message;
-                    const statusCode = axiosError.response.status;
-                    if (statusCode === 401 || statusCode === 403) {
-                        setError('Phiên đăng nhập hết hạn hoặc bạn không có quyền truy cập. Vui lòng đăng nhập lại.');
-                    } else if (statusCode === 404) {
-                        setError('Bạn chưa được phân công làm giáo viên chủ nhiệm lớp nào.');
-                    }
-                    else {
-                        setError(`Lỗi tải danh sách lớp chủ nhiệm: ${apiMessage || `Status ${statusCode}`}`);
-                    }
-                } else {
-                    setError('Không thể kết nối đến máy chủ API hoặc có lỗi khi tải dữ liệu.');
-                }
-                setHomeroomClasses([]);
-                 setAllStatisticsError(error);
-            } finally {
-                setLoading(false);
-                setLoadingAllStatistics(false);
-            }
-        };
-
-        fetchHomeroomClassesWithStats();
-    }, []);
 
     const formatBirthday = (birthday: string | null | undefined) => {
         if (!birthday) return 'N/A';
@@ -759,7 +844,6 @@ const Homeroom = () => {
 
     const performanceCategories: (keyof ClassPerformanceSummaryData)[] = ["Giỏi", "Khá", "Trung bình", "Yếu", "Kém", "Chưa xếp loại"];
 
-    // 2. Tạo hàm group điểm theo môn và học kỳ (giống ClassesTeaching nhưng giữ logic cũ)
     const scoresBySubjectAndSemester = useMemo(() => {
         const organized: { [semester: string]: { [subjectName: string]: { [scoreType: string]: Score[] } } } = {};
         scores.forEach(score => {
@@ -770,7 +854,6 @@ const Homeroom = () => {
             if (!organized[semester][subjectName][score.type]) organized[semester][subjectName][score.type] = [];
             organized[semester][subjectName][score.type].push(score);
         });
-        // Sắp xếp tên môn
         Object.keys(organized).forEach(sem => {
             const sorted: { [subjectName: string]: { [scoreType: string]: Score[] } } = {};
             Object.keys(organized[sem]).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' })).forEach(name => {
@@ -792,16 +875,30 @@ const Homeroom = () => {
                     <Typography variant="h4" gutterBottom sx={{ color: '#FFFFFF', mb: 0 }}>
                         Lớp Chủ Nhiệm
                     </Typography>
-                    {!loading && homeroomClasses.length > 0 && (
-                         <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleOpenAddStudentDialog}
-                            sx={{ bgcolor: '#7e57c2', '&:hover': { bgcolor: '#673ab7' } }}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {!loading && homeroomClasses.length > 0 && (
+                             <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={handleOpenAddStudentDialog}
+                                sx={{ bgcolor: '#7e57c2', '&:hover': { bgcolor: '#673ab7' } }}
+                            >
+                                Thêm Học sinh
+                            </Button>
+                        )}
+                        <Button
+                            variant="outlined"
+                            startIcon={<Refresh />}
+                            onClick={fetchHomeroomClassesWithStats}
+                            disabled={loading}
+                            sx={{
+                              color: '#e0e0e0',
+                              borderColor: '#e0e0e0',
+                            }}
                         >
-                            Thêm Học sinh
+                            Làm mới
                         </Button>
-                    )}
+                    </Box>
                 </Stack>
 
                 {(loading || loadingAllStatistics) && (
@@ -934,7 +1031,7 @@ const Homeroom = () => {
                                                 <Table size="small" sx={{ '& .MuiTableCell-root': { borderBottom: '1px solid #4f5263', color: '#e0e0e0' } }}>
                                                     <TableHead>
                                                         <TableRow sx={{ backgroundColor: '#31323d' }}>
-                                                            <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>ID</TableCell>
+                                                            <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Mã học sinh</TableCell>
                                                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Họ và tên</TableCell>
                                                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Ngày sinh</TableCell>
                                                             <TableCell sx={{ fontWeight: 'bold', color: '#FFFFFF' }}>Giới tính</TableCell>
@@ -1276,10 +1373,10 @@ const Homeroom = () => {
                                <Select
                                  value={selectedGrade}
                                  label="Khối"
-                                 onChange={(e) => {
+                                 onChange={(e: SelectChangeEvent<string>) => {
                                      const grade = e.target.value as string;
                                      setSelectedGrade(grade);
-                                     setStudentToEdit(prev => prev ? { ...prev, class_id: '' } : null); 
+                                     setStudentToEdit(prev => prev ? { ...prev, class_id: null, class: null } : null);
                                  }}
                                  sx={{
                                       color: '#e0e0e0',
@@ -1300,7 +1397,7 @@ const Homeroom = () => {
                                <InputLabel sx={{ color: '#e0e0e0' }}>Lớp</InputLabel>
                                <Select
                                  name="class_id"
-                                 value={studentToEdit.class_id}
+                                 value={studentToEdit.class_id || ''}
                                  label="Lớp"
                                  onChange={handleEditStudentInputChange}
                                  disabled={loadingClasses || selectedGrade === ''}
@@ -1319,7 +1416,7 @@ const Homeroom = () => {
                                       <MenuItem disabled>{classesError}</MenuItem>
                                  ) : (
                                       classes
-                                          .filter(cls => String(cls.grade) === selectedGrade) 
+                                          .filter(cls => String(cls.grade) === selectedGrade)
                                           .map((cls) => (
                                               <MenuItem key={cls.id} value={cls.id}>
                                                   {cls.name}

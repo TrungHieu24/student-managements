@@ -6,6 +6,7 @@ use App\Services\StudentService;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\ClassModel;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str; 
@@ -81,6 +82,19 @@ class StudentController extends BaseController
             // Load relationships
             $student->load(['user', 'class']);
             
+            // Manually create an AuditLog entry for student creation with generated password
+            AuditLog::create([
+                'table_name' => 'students',
+                'record_id' => $student->id,
+                'action_type' => 'CREATE',
+                'user_id' => auth()->id(), // Assuming authenticated user is creating the student
+                'old_values' => null,
+                'new_values' => array_merge($student->toArray(), ['generated_password' => $generatedPassword]),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->header('User-Agent'),
+                'changed_at' => now(),
+            ]);
+
             // Include the generated password in the response
             $student->generated_password = $generatedPassword;
 

@@ -16,7 +16,6 @@ import {
   Alert,
   Button,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
 } from '@mui/material';
@@ -37,8 +36,6 @@ interface ClassHistory {
   } | null;
   old_values: any;
   new_values: any;
-  ip_address: string;
-  user_agent: string;
 }
 
 interface ApiResponse {
@@ -52,6 +49,7 @@ interface ApiResponse {
 }
 
 const ClassHistory: React.FC = () => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const [history, setHistory] = useState<ClassHistory[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -65,6 +63,8 @@ const ClassHistory: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      const token = localStorage.getItem('token');
+
       const response = await axios.get<ApiResponse>('/api/class-history', {
         params: {
           page: page + 1,
@@ -74,9 +74,10 @@ const ClassHistory: React.FC = () => {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          "ngrok-skip-browser-warning": "true"
+          "ngrok-skip-browser-warning": "true",
+          'Authorization': `Bearer ${token}`
         },
-        baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
+        baseURL: API_BASE_URL
       });
 
       console.log('API Response:', response.data);
@@ -180,7 +181,6 @@ const ClassHistory: React.FC = () => {
             }
             value = format(new Date(value), 'HH:mm:ss dd/MM/yyyy', { locale: vi });
           } catch (e) {
-            // If date parsing fails, keep original value
           }
         }
 
@@ -236,31 +236,50 @@ const ClassHistory: React.FC = () => {
         <Typography variant="h4" gutterBottom sx={{ color: '#fff' }}>
           Lịch sử lớp học
         </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={fetchHistory}
-          disabled={loading}
-          sx={{ color: '#fff', borderColor: '#fff' }}
-        >
-          Làm mới
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <FormControl sx={{
+            minWidth: 150,
+            height: '40px',
+            bgcolor: '#333645',
+            borderRadius: '4px',
+            '& .MuiOutlinedInput-root': {
+              height: '40px',
+            }
+          }} size="small">
+            <Select
+              value={selectedActionType}
+              onChange={handleActionTypeChange}
+              displayEmpty
+              sx={{
+                color: '#fff',
+                height: '40px',
+                '.MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#888' },
+                '.MuiSvgIcon-root': { color: '#fff' }
+              }}
+            >
+              <MenuItem value="">Tất cả</MenuItem>
+              <MenuItem value="CREATE">Tạo mới</MenuItem>
+              <MenuItem value="UPDATE">Cập nhật</MenuItem>
+              <MenuItem value="DELETE">Xóa</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchHistory}
+            disabled={loading}
+            sx={{
+              color: '#fff',
+              borderColor: '#fff',
+              minWidth: 150,
+              height: '40px'
+            }}
+          >
+            Làm mới
+          </Button>
+        </Box>
       </Box>
-
-      <FormControl sx={{ minWidth: 120, mb: 2, bgcolor: '#333645', borderRadius: '4px' }} size="small">
-        <InputLabel sx={{ color: '#fff' }}>Hành động</InputLabel>
-        <Select
-          value={selectedActionType}
-          onChange={handleActionTypeChange}
-          label="Hành động"
-          sx={{ color: '#fff', '.MuiOutlinedInput-notchedOutline': { borderColor: '#666' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#888' }, '.MuiSvgIcon-root': { color: '#fff' } }}
-        >
-          <MenuItem value="">Tất cả</MenuItem>
-          <MenuItem value="CREATE">Tạo mới</MenuItem>
-          <MenuItem value="UPDATE">Cập nhật</MenuItem>
-          <MenuItem value="DELETE">Xóa</MenuItem>
-        </Select>
-      </FormControl>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -279,8 +298,6 @@ const ClassHistory: React.FC = () => {
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Người thực hiện</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin cũ</TableCell>
                 <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin mới</TableCell>
-                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>IP</TableCell>
-                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>User Agent</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -315,23 +332,6 @@ const ClassHistory: React.FC = () => {
                     </TableCell>
                     <TableCell>{renderJsonField(record.old_values)}</TableCell>
                     <TableCell>{renderJsonField(record.new_values)}</TableCell>
-                    <TableCell sx={{ color: '#fff' }}>
-                      <Tooltip title={record.ip_address}>
-                        <span>{record.ip_address}</span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell sx={{ color: '#fff' }}>
-                      <Tooltip title={record.user_agent}>
-                        <div style={{
-                          maxWidth: '200px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {record.user_agent}
-                        </div>
-                      </Tooltip>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (

@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
+import PersonIcon from '@mui/icons-material/Person';
 import CakeIcon from '@mui/icons-material/Cake';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import WcIcon from '@mui/icons-material/Wc';
@@ -219,8 +220,8 @@ const TeacherProfileDisplay = () => {
                                          <Grid item xs={12} sm={4}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', minHeight: '1.5rem' }}>
                                                 <InfoLabel sx={{ mr: 1 }}>
-                                                    <EmailIcon sx={{ mr: 0.5, fontSize: '1rem' }} />
-                                                    ID:
+                                                    <PersonIcon sx={{ mr: 0.5, fontSize: '1rem' }} />
+                                                    Mã giáo viên:
                                                 </InfoLabel>
                                                 <Typography variant="body1" sx={{ color: '#87888C', fontSize: '1rem', flexGrow: 1, wordBreak: 'break-word' }}>
                                                     {teacherDetails.id}

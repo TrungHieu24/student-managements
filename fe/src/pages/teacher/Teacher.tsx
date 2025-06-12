@@ -66,7 +66,6 @@ interface TeachingAssignment {
   subject_id: number;
   school_year: string;
   semester: number;
-  is_homeroom_teacher: boolean;
   weekly_periods: number | null;
   notes: string | null;
   class: Class;
@@ -92,7 +91,6 @@ interface NewTeachingAssignmentForm {
   subject_id: number | '';
   school_year: string;
   semester: number | '';
-  is_homeroom_teacher: boolean;
   weekly_periods?: number | '';
   notes?: string;
 }
@@ -328,7 +326,6 @@ const openEditBasicDialog = (teacher: Teacher) => {
 
         school_year: assignment.school_year,
         semester: assignment.semester,
-        is_homeroom_teacher: assignment.is_homeroom_teacher,
         weekly_periods: assignment.weekly_periods || '',
         notes: assignment.notes || '',
       }));
@@ -526,7 +523,6 @@ const openEditBasicDialog = (teacher: Teacher) => {
       subject_id: '',
       school_year: '',
       semester: '',
-      is_homeroom_teacher: false,
       weekly_periods: '',
 
       notes: '',
@@ -543,7 +539,6 @@ const openEditBasicDialog = (teacher: Teacher) => {
       subject_id: '',
       school_year: '',
       semester: '',
-      is_homeroom_teacher: false,
 
       weekly_periods: '',
       notes: '',
@@ -752,7 +747,6 @@ const openEditBasicDialog = (teacher: Teacher) => {
             subject_id: Number(assignment.subject_id),
             school_year: assignment.school_year,
             semester: Number(assignment.semester),
-            is_homeroom_teacher: Boolean(assignment.is_homeroom_teacher),
             weekly_periods:
               assignment.weekly_periods === '' ? null : Number(assignment.weekly_periods),
             notes: assignment.notes || null,
@@ -933,7 +927,6 @@ const openEditBasicDialog = (teacher: Teacher) => {
             subject_id: Number(assignment.subject_id),
             school_year: assignment.school_year,
             semester: Number(assignment.semester),
-            is_homeroom_teacher: Boolean(assignment.is_homeroom_teacher),
             weekly_periods:
               assignment.weekly_periods === '' ? null : Number(assignment.weekly_periods),
             notes: assignment.notes || null,
@@ -1819,7 +1812,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>{t('serialNumber')}</TableCell>
+                <TableCell>{t('teacher_id')}</TableCell>
                 <TableCell>{t('fullName')}</TableCell>
                 <TableCell>{t('birthday')}</TableCell>
                 <TableCell>{t('gender')}</TableCell>
@@ -1833,7 +1826,7 @@ const openEditBasicDialog = (teacher: Teacher) => {
               {teachers.length > 0 ? (
                 teachers.map((teacher, index) => (
                   <TableRow key={teacher.id}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{teacher.id}</TableCell>
                     <TableCell>{teacher.name}</TableCell>
                     <TableCell>
                       {teacher.birthday ? dayjs(teacher.birthday).format('DD/MM/YYYY') : 'N/A'}

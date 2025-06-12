@@ -48,7 +48,6 @@ class TeacherController extends Controller
             'teaching_assignments.*.subject_id' => 'required|integer|exists:subjects,id',
             'teaching_assignments.*.school_year' => 'required|string|max:20|regex:/^\d{4}-\d{4}$/',
             'teaching_assignments.*.semester' => 'required|integer|in:1,2',
-            'teaching_assignments.*.is_homeroom_teacher' => 'nullable|boolean',
             'teaching_assignments.*.weekly_periods' => 'nullable|integer|min:0',
             'teaching_assignments.*.notes' => 'nullable|string|max:1000',
         ]);
@@ -104,7 +103,6 @@ class TeacherController extends Controller
                             'subject_id' => $subjectId,
                             'school_year' => $schoolYear,
                             'semester' => $semester,
-                            'is_homeroom_teacher' => isset($assignmentData['is_homeroom_teacher']) ? (bool)$assignmentData['is_homeroom_teacher'] : false,
                             'weekly_periods' => isset($assignmentData['weekly_periods']) ? (int)$assignmentData['weekly_periods'] : null,
                             'notes' => $assignmentData['notes'] ?? null,
                         ]);
@@ -189,7 +187,6 @@ class TeacherController extends Controller
             'teaching_assignments.*.subject_id' => 'required|integer|exists:subjects,id',
             'teaching_assignments.*.school_year' => 'required|string|max:20|regex:/^\d{4}-\d{4}$/',
             'teaching_assignments.*.semester' => 'required|integer|in:1,2',
-            'teaching_assignments.*.is_homeroom_teacher' => 'nullable|boolean',
             'teaching_assignments.*.weekly_periods' => 'nullable|integer|min:0',
             'teaching_assignments.*.notes' => 'nullable|string|max:1000',
         ]);
@@ -244,7 +241,6 @@ class TeacherController extends Controller
                                 'subject_id' => (int)$item['subject_id'],
                                 'school_year' => (string)$item['school_year'],
                                 'semester' => (int)$item['semester'],
-                                'is_homeroom_teacher' => isset($item['is_homeroom_teacher']) ? (bool)$item['is_homeroom_teacher'] : false,
                                 'weekly_periods' => isset($item['weekly_periods']) ? (int)$item['weekly_periods'] : null,
                                 'notes' => $item['notes'] ?? null,
                             ]);
@@ -266,7 +262,6 @@ class TeacherController extends Controller
                                 'subject_id' => (int)$item['subject_id'],
                                 'school_year' => (string)$item['school_year'],
                                 'semester' => (int)$item['semester'],
-                                'is_homeroom_teacher' => isset($item['is_homeroom_teacher']) ? (bool)$item['is_homeroom_teacher'] : false,
                                 'weekly_periods' => isset($item['weekly_periods']) ? (int)$item['weekly_periods'] : null,
                                 'notes' => $item['notes'] ?? null,
                             ]);
