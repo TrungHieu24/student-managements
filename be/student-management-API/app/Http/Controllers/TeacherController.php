@@ -48,7 +48,6 @@ class TeacherController extends Controller
             'teaching_assignments.*.subject_id' => 'required|integer|exists:subjects,id',
             'teaching_assignments.*.school_year' => 'required|string|max:20|regex:/^\d{4}-\d{4}$/',
             'teaching_assignments.*.semester' => 'required|integer|in:1,2',
-            'teaching_assignments.*.is_homeroom_teacher' => 'nullable|boolean',
             'teaching_assignments.*.weekly_periods' => 'nullable|integer|min:0',
             'teaching_assignments.*.notes' => 'nullable|string|max:1000',
         ]);
@@ -104,7 +103,6 @@ class TeacherController extends Controller
                             'subject_id' => $subjectId,
                             'school_year' => $schoolYear,
                             'semester' => $semester,
-                            'is_homeroom_teacher' => isset($assignmentData['is_homeroom_teacher']) ? (bool)$assignmentData['is_homeroom_teacher'] : false,
                             'weekly_periods' => isset($assignmentData['weekly_periods']) ? (int)$assignmentData['weekly_periods'] : null,
                             'notes' => $assignmentData['notes'] ?? null,
                         ]);
@@ -112,9 +110,35 @@ class TeacherController extends Controller
                 }
             }
 
+            // Create audit log entry with generated password
+            $teacher->load(['subjects', 'teachingAssignments.class', 'teachingAssignments.subject']);
+
+            AuditLog::create([
+                'table_name' => 'teachers',
+                'record_id' => $teacher->id,
+                'action_type' => 'CREATE',
+                'user_id' => auth()->id(),
+                'old_values' => null,
+                'new_values' => [
+                    'id' => $teacher->id,
+                    'name' => $teacher->name,
+                    'email' => $teacher->email,
+                    'phone' => $teacher->phone,
+                    'gender' => $teacher->gender,
+                    'birthday' => $teacher->birthday,
+                    'address' => $teacher->address,
+                    'subjects' => $teacher->subjects->toArray(),
+                    'teaching_assignments' => $teacher->teachingAssignments->toArray(),
+                    'generated_password' => $generatedPassword,
+                    'created_at' => $teacher->created_at,
+                    'updated_at' => $teacher->updated_at,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
             DB::commit();
 
-            $teacher->load(['user', 'subjects', 'teachingAssignments.class', 'teachingAssignments.subject']);
             $teacher->generated_password = $generatedPassword; 
 
             return response()->json($teacher, 201);
@@ -142,6 +166,11 @@ class TeacherController extends Controller
     {
         $teacher = Teacher::with(['user', 'subjects', 'teachingAssignments'])->findOrFail($id);
 
+        // Capture old values before update
+        $oldValues = $teacher->toArray();
+        $oldValues['subjects'] = $teacher->subjects->pluck('id')->toArray(); // Store subject IDs
+        $oldValues['teaching_assignments'] = $teacher->teachingAssignments->toArray(); // Store teaching assignments
+
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($teacher->user_id)],
@@ -158,7 +187,6 @@ class TeacherController extends Controller
             'teaching_assignments.*.subject_id' => 'required|integer|exists:subjects,id',
             'teaching_assignments.*.school_year' => 'required|string|max:20|regex:/^\d{4}-\d{4}$/',
             'teaching_assignments.*.semester' => 'required|integer|in:1,2',
-            'teaching_assignments.*.is_homeroom_teacher' => 'nullable|boolean',
             'teaching_assignments.*.weekly_periods' => 'nullable|integer|min:0',
             'teaching_assignments.*.notes' => 'nullable|string|max:1000',
         ]);
@@ -166,31 +194,7 @@ class TeacherController extends Controller
         DB::beginTransaction();
 
         try {
-            // Store old values for audit log
-            $oldValues = [
-                'name' => $teacher->name,
-                'email' => $teacher->email,
-                'phone' => $teacher->phone,
-                'gender' => $teacher->gender,
-                'birthday' => $teacher->birthday,
-                'address' => $teacher->address,
-                'subjects' => $teacher->subjects->pluck('id')->toArray(),
-                'teaching_assignments' => $teacher->teachingAssignments->map(function($assignment) {
-                    return [
-                        'id' => $assignment->id,
-                        'class_id' => $assignment->class_id,
-                        'subject_id' => $assignment->subject_id,
-                        'school_year' => $assignment->school_year,
-                        'semester' => $assignment->semester,
-                        'is_homeroom_teacher' => $assignment->is_homeroom_teacher,
-                        'weekly_periods' => $assignment->weekly_periods,
-                        'notes' => $assignment->notes,
-                    ];
-                })->toArray()
-            ];
-
-            Log::info('Old values for audit log:', $oldValues);
-
+            // Update User first
             if ($teacher->user) {
                 $teacher->user->name = $validatedData['name'];
                 $teacher->user->email = $validatedData['email'];
@@ -202,18 +206,21 @@ class TeacherController extends Controller
                 Log::warning("User not found for teacher ID: " . $id . " during update.");
             }
 
+            // Update Teacher
             $teacher->name = $validatedData['name'];
             $teacher->email = $validatedData['email'];
             $teacher->phone = $validatedData['phone'] ?? null;
             $teacher->gender = $validatedData['gender'] ?? null;
             $teacher->birthday = $validatedData['birthday'] ?? null;
             $teacher->address = $validatedData['address'];
-            $teacher->save();
+            $teacher->save(); // Audit log sẽ được tự động tạo bởi AppServiceProvider
 
+            // Update subjects
             if ($request->has('subject_ids')) {
                 $teacher->subjects()->sync($validatedData['subject_ids'] ?? []);
             }
 
+            // Update teaching assignments
             if ($request->has('teaching_assignments')) {    
                 $assignments = collect($validatedData['teaching_assignments']);
 
@@ -234,7 +241,6 @@ class TeacherController extends Controller
                                 'subject_id' => (int)$item['subject_id'],
                                 'school_year' => (string)$item['school_year'],
                                 'semester' => (int)$item['semester'],
-                                'is_homeroom_teacher' => isset($item['is_homeroom_teacher']) ? (bool)$item['is_homeroom_teacher'] : false,
                                 'weekly_periods' => isset($item['weekly_periods']) ? (int)$item['weekly_periods'] : null,
                                 'notes' => $item['notes'] ?? null,
                             ]);
@@ -256,7 +262,6 @@ class TeacherController extends Controller
                                 'subject_id' => (int)$item['subject_id'],
                                 'school_year' => (string)$item['school_year'],
                                 'semester' => (int)$item['semester'],
-                                'is_homeroom_teacher' => isset($item['is_homeroom_teacher']) ? (bool)$item['is_homeroom_teacher'] : false,
                                 'weekly_periods' => isset($item['weekly_periods']) ? (int)$item['weekly_periods'] : null,
                                 'notes' => $item['notes'] ?? null,
                             ]);
@@ -267,34 +272,14 @@ class TeacherController extends Controller
                 }
             }
 
-            // Get updated teacher data for new values
-            $teacher->refresh();
-            $newValues = [
-                'name' => $teacher->name,
-                'email' => $teacher->email,
-                'phone' => $teacher->phone,
-                'gender' => $teacher->gender,
-                'birthday' => $teacher->birthday,
-                'address' => $teacher->address,
-                'subjects' => $teacher->subjects->pluck('id')->toArray(),
-                'teaching_assignments' => $teacher->teachingAssignments->map(function($assignment) {
-                    return [
-                        'id' => $assignment->id,
-                        'class_id' => $assignment->class_id,
-                        'subject_id' => $assignment->subject_id,
-                        'school_year' => $assignment->school_year,
-                        'semester' => $assignment->semester,
-                        'is_homeroom_teacher' => $assignment->is_homeroom_teacher,
-                        'weekly_periods' => $assignment->weekly_periods,
-                        'notes' => $assignment->notes,
-                    ];
-                })->toArray()
-            ];
+            // Capture new values after update
+            $teacher->load(['subjects', 'teachingAssignments.class', 'teachingAssignments.subject']);
+            $newValues = $teacher->toArray();
+            $newValues['subjects'] = $teacher->subjects->pluck('id')->toArray(); // Store subject IDs
+            $newValues['teaching_assignments'] = $teacher->teachingAssignments->toArray(); // Store teaching assignments
 
-            Log::info('New values for audit log:', $newValues);
-
-            // Create audit log entry
-            $auditLog = AuditLog::create([
+            // Create explicit audit log entry
+            AuditLog::create([
                 'table_name' => 'teachers',
                 'record_id' => $teacher->id,
                 'action_type' => 'UPDATE',
@@ -304,8 +289,6 @@ class TeacherController extends Controller
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
-
-            Log::info('Created audit log entry:', $auditLog->toArray());
 
             DB::commit();
 

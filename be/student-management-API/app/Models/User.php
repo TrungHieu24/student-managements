@@ -13,17 +13,18 @@ class User extends Authenticatable implements JWTSubject
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * @var array<int, 
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role', 
+        'role',
+        'avatar',
     ];
 
     /**
-     * @var array<int, 
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -31,12 +32,17 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     /**
-     * @var array<string,
+     * @var array<string, string>
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * @var array<int, string>
+     */
+    protected $appends = ['avatar_url'];
 
     /**
      * @return mixed
@@ -73,7 +79,7 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * @param string 
+     * @param string $permission
      * @return bool
      */
     public function hasPermission(string $permission): bool
@@ -91,5 +97,24 @@ class User extends Authenticatable implements JWTSubject
                 break;
         }
         return false;
+    }
+
+    /**
+     * Get the full URL for avatar
+     * @return string|null
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+        
+        // Nếu đã là URL đầy đủ thì return luôn
+        if (str_starts_with($this->avatar, 'http')) {
+            return $this->avatar;
+        }
+        
+        // Tạo URL từ storage path
+        return asset('storage/' . $this->avatar);
     }
 }

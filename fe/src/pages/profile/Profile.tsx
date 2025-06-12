@@ -25,6 +25,7 @@ interface User {
 }
 
 const Profile = (): ReactElement => {
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -41,7 +42,7 @@ const Profile = (): ReactElement => {
 
   const navigate = useNavigate();
 
-  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -96,7 +97,6 @@ const Profile = (): ReactElement => {
     if (!token) return;
 
     try {
-      // Cập nhật thông tin cơ bản
       const res = await axios.put(`${API_BASE_URL}/api/profile`, updatedUser, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -104,7 +104,6 @@ const Profile = (): ReactElement => {
         },
       });
 
-      // Nếu có chọn avatar mới
       if (avatarFile) {
         const formData = new FormData();
         formData.append('avatar', avatarFile);
@@ -114,7 +113,7 @@ const Profile = (): ReactElement => {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
             "ngrok-skip-browser-warning": "true", 
-          },
+          }, 
         });
       }
 

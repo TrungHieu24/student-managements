@@ -112,7 +112,12 @@
     "editSubject": "Sửa môn học",
     "courseManagement": "Danh Sách Lớp",
     "listClass": "Danh sách khối lớp",
-    "history": "Lịch sử đăng nhập",
+    "history": "Lịch sử",
+    "loginhistory": "Lịch sử đăng nhập",
+    "userhistory": "Lịch sử người dùng",
+    "teacherhistory": "Lịch sử giáo viên",
+    "subjecthistory": "Lịch sử môn học",
+    "classhistory":"Lịch sử lớp học",
     "classListTitle": "Danh sách lớp học",
     "retry": "Thử lại",
     "addNewClass": "Thêm lớp mới",
@@ -229,6 +234,10 @@
         "school_year_required": "Chưa nhập năm học",
         "school_year_format": "Định dạng năm học không hợp lệ",
         "semester_required": "Chưa chọn học kỳ"
-    }
+    },
+    "addSubject": "Thêm môn học",
+    "teacher_id": "Mã giáo viên",
+    "student_id": "Mã học sinh",
+    "subject_id": "Mã môn học"
 }
   

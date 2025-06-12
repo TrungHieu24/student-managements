@@ -101,7 +101,6 @@ const Dashboard: React.FC = () => {
   const [classDetails, setClassDetails] = useState<ClassDetailsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  // States cho Dialog xem điểm
   const [openScoreDialog, setOpenScoreDialog] = useState(false);
   const [currentStudentForScores, setCurrentStudentForScores] = useState<Student | null>(null);
   const [scores, setScores] = useState<Score[]>([]);
@@ -256,6 +255,8 @@ const Dashboard: React.FC = () => {
     return {
       headers: {
         Authorization: `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true",
+
       },
     };
   };

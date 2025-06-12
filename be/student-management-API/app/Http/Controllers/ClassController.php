@@ -11,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 use App\Models\Teacher;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use App\Models\AuditLog;
 
 class ClassController extends Controller
 {
@@ -213,6 +214,18 @@ class ClassController extends Controller
             ->leftJoin('teachers', 'classes.teacher_id', '=', 'teachers.id')
             ->find($class->id);
 
+            AuditLog::create([
+                'table_name' => 'classes',
+                'record_id' => $class->id,
+                'action_type' => 'CREATE',
+                'user_id' => Auth::id(),
+                'old_values' => null,
+                'new_values' => json_encode($class->toArray(), JSON_UNESCAPED_UNICODE),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'changed_at' => now(),
+            ]);
+
             return response()->json(['message' => 'Thêm lớp mới thành công.', 'class' => $newClassWithTeacherName], 201);
 
         } catch (ValidationException $e) {
@@ -228,6 +241,7 @@ class ClassController extends Controller
     {
         try {
             $class = ClassModel::findOrFail($id);
+            $oldClass = $class->toArray();
 
             $validatedData = $request->validate([
                 'name' => [
@@ -261,6 +275,18 @@ class ClassController extends Controller
             ->leftJoin('teachers', 'classes.teacher_id', '=', 'teachers.id')
             ->find($class->id);
 
+            AuditLog::create([
+                'table_name' => 'classes',
+                'record_id' => $class->id,
+                'action_type' => 'UPDATE',
+                'user_id' => Auth::id(),
+                'old_values' => json_encode($oldClass, JSON_UNESCAPED_UNICODE),
+                'new_values' => json_encode($class->toArray(), JSON_UNESCAPED_UNICODE),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'changed_at' => now(),
+            ]);
+
             return response()->json(['message' => 'Cập nhật thông tin lớp thành công.', 'class' => $updatedClass]);
 
         } catch (ValidationException $e) {
@@ -277,7 +303,20 @@ class ClassController extends Controller
     {
         try {
             $class = ClassModel::findOrFail($id);
+            $oldClass = $class->toArray();
             $class->delete();
+
+            AuditLog::create([
+                'table_name' => 'classes',
+                'record_id' => $id,
+                'action_type' => 'DELETE',
+                'user_id' => Auth::id(),
+                'old_values' => json_encode($oldClass, JSON_UNESCAPED_UNICODE),
+                'new_values' => null,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'changed_at' => now(),
+            ]);
 
             return response()->json(['message' => 'Xóa lớp thành công.']);
 
@@ -303,6 +342,78 @@ class ClassController extends Controller
         } catch (\Exception $e) {
             Log::error('Error fetching details for class ' . $id . ': ' . $e->getMessage());
             return response()->json(['message' => 'Lỗi khi lấy thông tin chi tiết lớp', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function history(Request $request)
+    {
+        try {
+            $query = AuditLog::where('table_name', 'classes');
+
+            if ($request->filled('record_id')) {
+                $query->where('record_id', $request->input('record_id'));
+            }
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->input('user_id'));
+            }
+            if ($request->filled('action_type')) {
+                $query->where('action_type', $request->input('action_type'));
+            }
+
+            $perPage = $request->input('per_page', 10);
+            $classHistory = $query->with('user')
+                                ->orderBy('changed_at', 'desc')
+                                ->paginate($perPage);
+
+            $transformedItems = $classHistory->getCollection()->map(function ($item) {
+                $oldValues = $item->old_values;
+                $newValues = $item->new_values;
+
+                // Resolve teacher names for old_values
+                if (isset($oldValues['teacher_id']) && $oldValues['teacher_id'] !== null) {
+                    $teacher = \App\Models\Teacher::find($oldValues['teacher_id']);
+                    $oldValues['teacher_name'] = $teacher ? $teacher->name : 'Unknown Teacher';
+                }
+
+                // Resolve teacher names for new_values
+                if (isset($newValues['teacher_id']) && $newValues['teacher_id'] !== null) {
+                    $teacher = \App\Models\Teacher::find($newValues['teacher_id']);
+                    $newValues['teacher_name'] = $teacher ? $teacher->name : 'Unknown Teacher';
+                }
+
+                return [
+                    'id' => $item->id,
+                    'record_id' => $item->record_id,
+                    'action_type' => $item->action_type,
+                    'created_at' => $item->changed_at ? $item->changed_at->format('Y-m-d H:i:s') : null,
+                    'user' => $item->user ? [
+                        'id' => $item->user->id,
+                        'name' => $item->user->name,
+                    ] : null,
+                    'old_values' => $oldValues,
+                    'new_values' => $newValues,
+                    'ip_address' => $item->ip_address,
+                    'user_agent' => $item->user_agent,
+                ];
+            });
+
+            return response()->json([
+                'data' => $transformedItems,
+                'meta' => [
+                    'current_page' => $classHistory->currentPage(),
+                    'last_page' => $classHistory->lastPage(),
+                    'per_page' => $classHistory->perPage(),
+                    'total' => $classHistory->total(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in class history: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            return response()->json([
+                'message' => 'Có lỗi xảy ra khi tải lịch sử lớp học',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
     }
 }       

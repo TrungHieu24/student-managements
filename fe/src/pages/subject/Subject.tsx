@@ -305,7 +305,7 @@ const SubjectManagement: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell width="20%"><strong>{t('serialNumber')}</strong></TableCell>
+                  <TableCell width="20%"><strong>{t('subject_id')}</strong></TableCell>
                   <TableCell width="60%"><strong>{t('subject')}</strong></TableCell>
                   <TableCell width="20%"><strong>{t('actions')}</strong></TableCell>
                 </TableRow>
@@ -313,7 +313,7 @@ const SubjectManagement: React.FC = () => {
               <TableBody>
                 {subjects.map((subject, index) => (
                   <TableRow key={subject.id}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{subject.id}</TableCell>
                     <TableCell>{t(`subjectName.${subject.name}`)}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1}>

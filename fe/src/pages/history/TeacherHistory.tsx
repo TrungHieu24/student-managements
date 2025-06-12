@@ -1,518 +1,733 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Chip,
+  IconButton,
+  Tooltip,
+  CircularProgress,
+  Alert,
+  Button,
+  TextField,
+  InputAdornment,
+  FormControl,
+  Select,
+  MenuItem,
+} from '@mui/material';
+import { Refresh, Visibility, VisibilityOff } from '@mui/icons-material';
 import axios from 'axios';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import type { SelectChangeEvent } from '@mui/material/Select';
 
-// Add axios interceptor to include auth token
-axios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-interface AuditLogEntry {
+interface TeacherHistory {
   id: number;
   table_name: string;
   record_id: number;
-  action_type: 'CREATE' | 'UPDATE' | 'DELETE';
-  user_id: number | null;
-  old_values: any | null;
-  new_values: any | null;
+  action_type: string;
+  user_id: number;
+  old_values: any;
+  new_values: any;
   changed_at: string;
-  ip_address: string | null;
-  user_agent: string | null;
-  user?: {
+  user: {
     id: number;
     name: string;
+    email: string;
+    role: string;
+  } | null;
+}
+
+interface ApiResponse {
+  data: TeacherHistory[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
   };
 }
-
-interface Meta {
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-}
-
-const API_BASE_URL = 'http://localhost:8000/api';
 
 const TeacherHistory: React.FC = () => {
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+  const { t } = useTranslation();
+  const [history, setHistory] = useState<TeacherHistory[]>([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [lastPage, setLastPage] = useState<number>(1);
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+  const [subjects, setSubjects] = useState<{[key: string]: string}>({});
+  const [showPasswords, setShowPasswords] = useState<{ [key: number]: boolean }>({});
+  const [userRole, setUserRole] = useState<string>('');
   const [selectedActionType, setSelectedActionType] = useState<string>('');
-  const [subjects, setSubjects] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<{[key: string]: string}>({});
 
-  const parseJsonData = (data: any) => {
-    if (!data) return null;
-    if (typeof data === 'object') return data;
+  const fetchHistory = async () => {
     try {
-      return JSON.parse(data);
-    } catch (e) {
-      console.error('Error parsing JSON:', e);
-      return data;
-    }
-  };
+      setLoading(true);
+      setError(null);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-  };
+      const token = localStorage.getItem('token');
 
-  const formatJsonWithDates = (data: any) => {
-    if (!data) return null;
-    const parsedData = parseJsonData(data);
-    if (!parsedData) return null;
-
-    const formattedData = { ...parsedData };
-
-    // Format dates
-    if (formattedData.created_at) {
-      formattedData.created_at = formatDate(formattedData.created_at);
-    }
-    if (formattedData.updated_at) {
-      formattedData.updated_at = formatDate(formattedData.updated_at);
-    }
-    if (formattedData.birthday) {
-      formattedData.birthday = new Date(formattedData.birthday).toLocaleDateString('vi-VN');
-    }
-
-    // Format subjects if they exist
-    if (formattedData.subjects) {
-      formattedData.subjects = formattedData.subjects.map((subjectId: number) => {
-        const subject = subjects.find(s => s.id === subjectId);
-        return subject ? subject.name : subjectId;
+      const response = await axios.get<ApiResponse>(`/api/teacher-history`, {
+        params: {
+          page: page + 1,
+          per_page: rowsPerPage,
+          action_type: selectedActionType,
+        },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          "ngrok-skip-browser-warning": "true",
+          'Authorization': `Bearer ${token}`
+        },
+        baseURL: API_BASE_URL
       });
-    }
 
-    // Format teaching assignments if they exist
-    if (formattedData.teaching_assignments) {
-      formattedData.teaching_assignments = formattedData.teaching_assignments.map((assignment: any) => {
-        const formattedAssignment = { ...assignment };
-        const classObj = classes.find(c => c.id === assignment.class_id);
-        const subjectObj = subjects.find(s => s.id === assignment.subject_id);
-        
-        if (classObj) {
-          formattedAssignment.class_name = classObj.name;
+      const processedData = response.data.data.reduce((acc: TeacherHistory[], curr: TeacherHistory) => {
+        const existingRecord = acc.find(
+          (record) =>
+            record.record_id === curr.record_id &&
+            record.action_type === curr.action_type &&
+            record.changed_at === curr.changed_at
+        );
+
+        if (existingRecord && curr.action_type === 'CREATE') {
+          existingRecord.new_values = {
+            ...existingRecord.new_values,
+            ...curr.new_values
+          };
+          return acc;
         }
-        if (subjectObj) {
-          formattedAssignment.subject_name = subjectObj.name;
+
+        return [...acc, curr];
+      }, []);
+
+      processedData.sort((a, b) => 
+        new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
+      );
+
+      const sanitizedData = processedData.map((record: TeacherHistory) => {
+        const sanitized = { ...record };
+
+        if (sanitized.old_values && typeof sanitized.old_values === 'object') {
+          delete sanitized.old_values.updated_at;
         }
-        
-        return formattedAssignment;
+        if (sanitized.new_values && typeof sanitized.new_values === 'object') {
+          delete sanitized.new_values.updated_at;
+        }
+
+        if (sanitized.action_type === 'UPDATE') {
+          const oldVals = sanitized.old_values || {};
+          const newVals = sanitized.new_values || {};
+          const changedOldValues: { [key: string]: any } = {};
+          const changedNewValues: { [key: string]: any } = {};
+
+          if ('subjects' in oldVals) changedOldValues.subjects = oldVals.subjects;
+          if ('subjects' in newVals) changedNewValues.subjects = newVals.subjects;
+          if ('teaching_assignments' in oldVals) changedOldValues.teaching_assignments = oldVals.teaching_assignments;
+          if ('teaching_assignments' in newVals) changedNewValues.teaching_assignments = newVals.teaching_assignments;
+
+          const allKeys = new Set([...Object.keys(oldVals), ...Object.keys(newVals)]);
+
+          for (const key of allKeys) {
+            if (key === 'subjects' || key === 'teaching_assignments') {
+                continue;
+            }
+
+            const oldValue = oldVals[key];
+            const newValue = newVals[key];
+
+            let hasChanged = false;
+            if (typeof oldValue === 'object' && oldValue !== null && typeof newValue === 'object' && newValue !== null) {
+                hasChanged = JSON.stringify(oldValue) !== JSON.stringify(newValue);
+            } else {
+                hasChanged = oldValue !== newValue;
+            }
+
+            if (hasChanged || !(key in oldVals) || !(key in newVals)) {
+                if (key in oldVals) changedOldValues[key] = oldValue;
+                if (key in newVals) changedNewValues[key] = newValue;
+            }
+          }
+          sanitized.old_values = changedOldValues;
+          sanitized.new_values = changedNewValues;
+
+        } else { 
+          if (sanitized.old_values) {
+            const oldValues = { ...sanitized.old_values };
+            if (oldValues.password) oldValues.password = '********';
+            if (oldValues.remember_token) oldValues.remember_token = '********';
+            sanitized.old_values = oldValues;
+          }
+
+          if (sanitized.new_values) {
+            const newValues = { ...sanitized.new_values };
+            if (newValues.password) newValues.password = '********';
+            if (newValues.remember_token) newValues.remember_token = '********';
+            sanitized.new_values = newValues;
+          }
+        }
+
+        if (sanitized.action_type === 'CREATE' && record.new_values?.generated_password) {
+            sanitized.new_values = { ...sanitized.new_values, generated_password: record.new_values.generated_password };
+        } else if (sanitized.new_values?.generated_password) {
+            delete sanitized.new_values.generated_password;
+        }
+
+        return sanitized;
       });
-    }
 
-    const jsonString = JSON.stringify(formattedData, null, 2);
-    return jsonString.replace(/\\u[\dA-F]{4}/gi, (match) => {
-      return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
-    });
-  };
+      setHistory(sanitizedData);
+      setTotal(response.data.meta.total || 0);
 
-  const fetchTeacherHistory = async (page: number = 1) => {
-    console.log('Fetching history with params:', { page, teacher_id: selectedTeacherId, action_type: selectedActionType }); // Debug log
-    setLoading(true);
-    setError(null);
-    try {
-      const params = {
-        page: page,
-        teacher_id: selectedTeacherId || undefined,
-        action_type: selectedActionType || undefined,
-      };
+      console.log('Sanitized History Data:', sanitizedData);
+      sanitizedData.forEach(record => {
+        if (record.action_type === 'UPDATE') {
+          console.log(`Record ID: ${record.record_id}, Action: ${record.action_type}`);
+          console.log('Old Values (Teaching Assignments):', record.old_values?.teaching_assignments);
+          console.log('New Values (Teaching Assignments):', record.new_values?.teaching_assignments);
+          console.log('Old Values (Subjects):', record.old_values?.subjects);
+          console.log('New Values (Subjects):', record.new_values?.subjects);
+        }
+      });
 
-      const response = await axios.get(`${API_BASE_URL}/teacher-history`, { params });
-      console.log('API Response:', response.data); // Debug log
-      setLogs(response.data.data);
-      setLastPage(response.data.meta.last_page);
-      setCurrentPage(response.data.meta.current_page);
-    } catch (err: any) {
-      console.error("Error fetching teacher history:", err); // Debug log
-      let errorMessage = "Không thể tải lịch sử giáo viên. Vui lòng thử lại.";
-      if (err.response) {
-        if (err.response.status === 401) {
-          errorMessage = "Bạn không có quyền truy cập. Vui lòng đăng nhập.";
-        } else if (err.response.data && err.response.data.message) {
-          errorMessage = `Lỗi từ server: ${err.response.data.message}`;
+    } catch (error: any) {
+      console.error('Error details:', error);
+      let errorMessage = 'Không thể tải lịch sử giáo viên. Vui lòng thử lại sau.';
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+          window.location.href = '/authentication/login';
         } else {
-          errorMessage = `Lỗi API: Mã trạng thái ${err.response.status}`;
+          errorMessage = error.response.data?.message || 
+                        `Lỗi server: ${error.response.status} - ${error.response.statusText}`;
         }
-      } else if (err.request) {
-        errorMessage = "Không nhận được phản hồi từ server. Vui lòng kiểm tra kết nối mạng hoặc URL API.";
+      } else if (error.request) {
+        errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+      } else {
+        errorMessage = error.message || errorMessage;
       }
+
       setError(errorMessage);
+      setHistory([]);
+      setTotal(0);
     } finally {
       setLoading(false);
-      console.log('Current logs state:', logs); // Debug log
     }
   };
 
   useEffect(() => {
-    console.log('useEffect triggered, current page:', currentPage); // Debug log
-    fetchTeacherHistory(currentPage);
-  }, [currentPage]); // Remove filter dependencies, only depend on currentPage
+    const initializeData = async () => {
+      setLoading(true);
+      try {
+        const [subjectsRes, classesRes] = await Promise.all([
+          axios.get('/api/subjects', {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              "ngrok-skip-browser-warning": "true"
+            },
+            baseURL: API_BASE_URL
+          }),
+          axios.get('/api/classes', {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              "ngrok-skip-browser-warning": "true"
+            },
+            baseURL: API_BASE_URL
+          })
+        ]);
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= lastPage) {
-      setCurrentPage(newPage);
+        const subjectMap: {[key: string]: string} = {};
+        if (Array.isArray(subjectsRes.data)) {
+          subjectsRes.data.forEach((subject: any) => {
+            subjectMap[subject.id] = subject.name;
+          });
+        } else if (subjectsRes.data.data && Array.isArray(subjectsRes.data.data)) {
+          subjectsRes.data.data.forEach((subject: any) => {
+            subjectMap[subject.id] = subject.name;
+          });
+        }
+        setSubjects(subjectMap);
+
+        const classMap: {[key: string]: string} = {};
+        if (Array.isArray(classesRes.data)) {
+          classesRes.data.forEach((cls: any) => {
+            classMap[cls.id] = cls.name;
+          });
+        } else if (classesRes.data.data && Array.isArray(classesRes.data.data)) {
+          classesRes.data.data.forEach((cls: any) => {
+            classMap[cls.id] = cls.name;
+          });
+        }
+        setClasses(classMap);
+
+        await axios.get('/api/user', {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            "ngrok-skip-browser-warning": "true"
+          },
+          baseURL: API_BASE_URL
+        }).then(response => {
+          if (response.data && response.data.role) {
+            setUserRole(response.data.role);
+          }
+        });
+
+        await fetchHistory();
+
+      } catch (e: any) {
+        console.error("Error initializing data:", e);
+        let errorMessage = 'Lỗi khi tải dữ liệu khởi tạo.';
+        if (e.response && e.response.status === 401) {
+          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+          window.location.href = '/authentication/login';
+        } else {
+          errorMessage = e.response?.data?.message || e.message || errorMessage;
+        }
+        setError(errorMessage);
+        setHistory([]);
+        setTotal(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeData();
+  }, [page, rowsPerPage, selectedActionType]);
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleActionTypeChange = (event: SelectChangeEvent<string>) => {
+    setSelectedActionType(event.target.value as string);
+    setPage(0);
+  };
+
+  const formatDateTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'HH:mm:ss dd/MM/yyyy', { locale: vi });
+    } catch (error) {
+      console.warn('Date formatting error:', error);
+      return dateString;
     }
   };
 
-  const handleFilterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1); // Reset to first page when applying new filters
-    fetchTeacherHistory(1); // Fetch immediately with new filters
+  const getActionTypeColor = (actionType: string) => {
+    switch (actionType) {
+      case 'CREATE':
+        return 'success';
+      case 'UPDATE':
+        return 'warning';
+      case 'DELETE':
+        return 'error';
+      default:
+        return 'default';
+    }
   };
 
-  const clearFilters = () => {
-    setSelectedTeacherId('');
-    setSelectedActionType('');
-    setCurrentPage(1); // Reset to first page when clearing filters
-    fetchTeacherHistory(1); // Fetch immediately after clearing filters
+    const getActionTypeText = (actionType: string) => {
+    switch (actionType) {
+      case 'CREATE':
+        return 'Tạo mới';
+      case 'UPDATE':
+        return 'Cập nhật';
+      case 'DELETE':
+        return 'Xóa';
+      default:
+        return actionType;
+    }
   };
 
-  // Styles
-  const containerStyle: React.CSSProperties = {
-    padding: '20px',
-    minHeight: '100vh',
-    fontFamily: 'Inter, sans-serif',
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-    backgroundColor: '#171821', // Dark background as requested
-    color: '#ffffff', // Default text color for the whole container
+  const formatSubjectIds = (subjectIds: any) => {
+    if (!subjectIds) return '';
+    
+    const ids = typeof subjectIds === 'string' ? subjectIds.split(',') : subjectIds;
+    
+    return ids
+      .map((id: any) => {
+        const trimmedId = String(id).trim();
+        const subjectName = subjects[trimmedId];
+        return subjectName ? t(`subjectName.${subjectName}`) : trimmedId;
+      })
+      .filter(Boolean)
+      .join(', ');
   };
 
-  const headingStyle: React.CSSProperties = {
-    fontSize: '2rem',
-    fontWeight: 'bold',
-    marginBottom: '20px',
-    textAlign: 'center',
-    color: '#ffffff', // White heading color
+  const togglePasswordVisibility = (id: number) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
-  const formStyle: React.CSSProperties = {
-    padding: '15px',
-    borderRadius: '8px',
-    marginBottom: '20px',
-    border: '1px solid #333', // Darker border
-    backgroundColor: '#22232b', // Darker form background
-    boxShadow: '0 2px 4px rgba(0,0,0,0.5)', // Darker shadow
+  const renderPasswordField = (values: any, id: number) => {
+    if (values?.generated_password) {
+      return (
+        <TextField
+          type={showPasswords[id] ? 'text' : 'password'}
+          value={values.generated_password}
+          size="small"
+          InputProps={{
+            readOnly: true,
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() => togglePasswordVisibility(id)}
+                  edge="end"
+                  sx={{ color: '#fff' }}
+                >
+                  {showPasswords[id] ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: '#4a4d5e',
+              color: '#fff',
+              '& fieldset': { borderColor: '#666' },
+              '&:hover fieldset': { borderColor: '#888' },
+              '&.Mui-focused fieldset': { borderColor: '#fff' },
+            },
+            '& .MuiInputBase-input': {
+              color: '#fff',
+            }
+          }}
+        />
+      );
+    }
+    return null;
   };
 
-  const formGridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '15px',
-    alignItems: 'flex-end',
+  const renderJsonField = (data: any) => {
+    if (data === null || data === undefined) {
+      return <span style={{ color: '#999', fontStyle: 'italic' }}>null</span>;
+    }
+    
+    try {
+      const sanitizedData = { ...data };
+      if (sanitizedData.password) {
+        sanitizedData.password = '********';
+      }
+      if (sanitizedData.remember_token) {
+        sanitizedData.remember_token = '********';
+      }
+      if (sanitizedData.generated_password) {
+        delete sanitizedData.generated_password;
+      }
+
+      const uniqueFields = new Set();
+      const formattedData = Object.entries(sanitizedData)
+        .filter(([key, value]) => {
+          if (key === 'updated_at') {
+            return false;
+          }
+          if (uniqueFields.has(key)) return false;
+          uniqueFields.add(key);
+          return value !== null;
+        })
+        .map(([key, value]) => {
+          if (key.includes('_at') && typeof value === 'string') {
+            try {
+              value = format(new Date(value), 'HH:mm:ss dd/MM/yyyy', { locale: vi });
+            } catch (e) {
+            }
+          }
+
+          if (typeof value === 'boolean') {
+            value = value ? 'Có' : 'Không';
+          }
+
+          if (key === 'subjects') {
+            value = formatSubjectIds(value);
+          }
+
+          if (key === 'teaching_assignments') {
+            const assignmentsArray = Array.isArray(value) ? value : [];
+
+            console.log('Rendering teaching_assignments. Value:', assignmentsArray);
+            console.log('Current classes map:', classes);
+            console.log('Current subjects map:', subjects);
+
+            assignmentsArray.forEach((assignment, idx) => {
+              console.log(`Assignment ${idx}:`, assignment);
+              console.log(`  Class ID: ${assignment.class_id}, Class Name: ${classes[assignment.class_id]}`);
+              console.log(`  Subject ID: ${assignment.subject_id}, Subject Name: ${subjects[assignment.subject_id]}`);
+            });
+
+            return (
+              <div key={key} style={{ marginBottom: '4px' }}>
+                <strong style={{ color: '#aaa' }}>Phân công giảng dạy:</strong>
+                {assignmentsArray.length > 0 ? (
+                  assignmentsArray.map((assignment: any, index: number) => (
+                    <div key={index} style={{ marginLeft: '10px', marginTop: '5px', padding: '5px', border: '1px solid #666', borderRadius: '4px', backgroundColor: '#3a3d4f' }}>
+                      <div style={{ color: '#fff' }}>
+                        Lớp: <span style={{ fontWeight: 'bold' }}>{classes[assignment.class_id] || assignment.class_id}</span>
+                      </div>
+                      <div style={{ color: '#fff' }}>
+                        Môn: <span style={{ fontWeight: 'bold' }}>{subjects[assignment.subject_id] || assignment.subject_id}</span>
+                      </div>
+                      <div style={{ color: '#fff' }}>
+                        Năm học: {assignment.school_year}
+                      </div>
+                      <div style={{ color: '#fff' }}>
+                        Học kỳ: {assignment.semester}
+                      </div>
+                      {assignment.is_homeroom_teacher !== undefined && (
+                        <div style={{ color: '#fff' }}>
+                          GVCN: {assignment.is_homeroom_teacher ? 'Có' : 'Không'}
+                        </div>
+                      )}
+                      {assignment.weekly_periods !== undefined && (
+                        <div style={{ color: '#fff' }}>
+                          Tiết/tuần: {assignment.weekly_periods}
+                        </div>
+                      )}
+                      {assignment.notes && (
+                        <div style={{ color: '#fff' }}>
+                          Ghi chú: {assignment.notes}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <span style={{ color: '#999', fontStyle: 'italic' }}>Không có phân công</span>
+                )}
+              </div>
+            );
+          }
+
+          const fieldMap: { [key: string]: string } = {
+            'name': 'Tên',
+            'email': 'Email',
+            'phone': 'Số điện thoại',
+            'address': 'Địa chỉ',
+            'birthday': 'Ngày sinh',
+            'created_at': 'Ngày tạo',
+            'updated_at': 'Ngày cập nhật',
+            'id': 'ID',
+            'subjects': 'Môn học',
+            'teaching_assignments': 'Phân công giảng dạy',
+            'gender': 'Giới tính'
+          };
+
+          return (
+            <div key={key} style={{ marginBottom: '4px' }}>
+              <strong style={{ color: '#aaa' }}>{fieldMap[key] || key}:</strong>{' '}
+              <span style={{ color: '#fff' }}>{String(value)}</span>
+            </div>
+          );
+        })
+        .filter(Boolean);
+
+      return (
+        <div style={{ 
+          padding: '8px',
+          backgroundColor: '#4a4d5e',
+          borderRadius: '4px',
+          fontSize: '13px',
+          maxWidth: '300px',
+          overflow: 'auto',
+          color: '#fff'
+        }}>
+          {formattedData}
+        </div>
+      );
+    } catch (error) {
+      return <span style={{ color: 'red' }}>Invalid JSON</span>;
+    }
   };
 
-  const formFieldStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '0.9rem',
-    fontWeight: 'normal',
-    marginBottom: '5px',
-    color: '#ffffff', // White label color
-  };
-
-  const inputStyle: React.CSSProperties = {
-    display: 'block',
-    width: '100%',
-    padding: '8px',
-    border: '1px solid #555', // Darker border
-    borderRadius: '4px',
-    boxShadow: 'none',
-    outline: 'none',
-    fontSize: '0.9rem',
-    backgroundColor: '#2a2b34', // Dark input background
-    color: '#ffffff', // White text
-  };
-
-  const selectStyle: React.CSSProperties = {
-    ...inputStyle,
-    backgroundColor: '#2a2b34', // Dark select background
-    color: '#ffffff', // White text
-  };
-
-  const buttonGroupStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'row',
-    gap: '10px',
-    marginTop: '0',
-    justifyContent: 'flex-end',
-  };
-
-  const buttonBaseStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '8px 15px',
-    border: '1px solid #555', // Darker border
-    fontSize: '0.9rem',
-    fontWeight: 'normal',
-    borderRadius: '4px',
-    boxShadow: 'none',
-    cursor: 'pointer',
-    transition: 'background-color 0.15s ease-in-out, border-color 0.15s ease-in-out',
-    color: '#ffffff', // White text
-  };
-
-  const primaryButtonStyle: React.CSSProperties = {
-    ...buttonBaseStyle,
-    backgroundColor: '#1a73e8', // Blue for primary
-    borderColor: '#1a73e8',
-  };
-
-  const secondaryButtonStyle: React.CSSProperties = {
-    ...buttonBaseStyle,
-    backgroundColor: '#2a2b34', // Dark background for secondary
-    borderColor: '#555', // Darker border
-  };
-
-  const tableContainerStyle: React.CSSProperties = {
-    overflowX: 'auto',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.5)', // Darker shadow
-    border: '1px solid #333', // Darker border
-    backgroundColor: '#22232b', // Darker table background
-  };
-
-  const tableStyle: React.CSSProperties = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    tableLayout: 'auto',
-  };
-
-  const thStyle: React.CSSProperties = {
-    padding: '10px 15px',
-    textAlign: 'left',
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    backgroundColor: '#33343d', // Darker header background
-    borderBottom: '1px solid #555', // Darker border
-    color: '#ffffff', // White header text
-  };
-
-  const tdStyle: React.CSSProperties = {
-    padding: '10px 15px',
-    fontSize: '0.85rem',
-    borderBottom: '1px solid #4a4a4a', // Darker border between rows
-    color: '#ffffff', // White cell text
-  };
-
-  const preStyle: React.CSSProperties = {
-    backgroundColor: '#33343d', // Dark background for pre
-    padding: '5px',
-    borderRadius: '3px',
-    overflow: 'auto',
-    maxHeight: '100px',
-    fontSize: '0.7rem',
-    fontFamily: 'monospace',
-    border: '1px solid #666', // Darker border
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    margin: 0,
-    color: '#ffffff', // White text for JSON
-    minWidth: '250px', // Increased min-width for JSON content
-  };
-
-  const userAgentTdStyle: React.CSSProperties = {
-    ...tdStyle,
-    maxWidth: '150px',
-    whiteSpace: 'normal',
-    wordBreak: 'break-word',
-  };
-
-  const paginationContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: '20px',
-    gap: '10px',
-  };
-
-  const paginationButtonStyle: React.CSSProperties = {
-    padding: '8px 12px',
-    border: '1px solid #555', // Darker border
-    borderRadius: '4px',
-    boxShadow: 'none',
-    fontSize: '0.85rem',
-    fontWeight: 'normal',
-    backgroundColor: '#2a2b34', // Dark background for pagination buttons
-    cursor: 'pointer',
-    transition: 'background-color 0.15s ease-in-out',
-    color: '#ffffff', // White text
-  };
-
-  const paginationSpanStyle: React.CSSProperties = {
-    fontWeight: 'normal',
-    margin: '0 5px',
-    color: '#ffffff', // White text
-  };
-
-
-  if (loading) return <div style={{ ...containerStyle, textAlign: 'center', fontSize: '1.125rem', color: '#ffffff' }}>Đang tải lịch sử...</div>;
-  if (error) return <div style={{ ...containerStyle, textAlign: 'center', fontSize: '1.125rem', color: '#dc3545' }}>Lỗi: {error}</div>;
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#21222D' }}>
+        <CircularProgress sx={{ color: '#fff' }} />
+        <Typography sx={{ ml: 2, color: '#fff' }}>Đang tải dữ liệu...</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <div style={containerStyle}>
-      <h1 style={headingStyle}>Lịch sử thay đổi Giáo viên</h1>
-
-      {/* Filter Form */}
-      <form onSubmit={handleFilterSubmit} style={formStyle}>
-        <div style={formGridStyle}>
-          {/* Teacher ID Filter */}
-          <div style={formFieldStyle}>
-            <label htmlFor="teacherId" style={labelStyle}>ID Giáo viên:</label>
-            <input
-              type="number"
-              id="teacherId"
-              value={selectedTeacherId}
-              onChange={(e) => setSelectedTeacherId(e.target.value)}
-              style={inputStyle}
-              placeholder="Nhập ID"
-            />
-          </div>
-
-          {/* Action Type Filter */}
-          <div style={formFieldStyle}>
-            <label htmlFor="actionType" style={labelStyle}>Loại hành động:</label>
-            <select
-              id="actionType"
+    <Box sx={{ p: 3, backgroundColor: '#21222D', minHeight: '100vh', color: '#fff' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ color: '#fff' }}>
+          Lịch sử giáo viên
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <FormControl sx={{
+            minWidth: 150,
+            height: '40px',
+            bgcolor: '#333645',
+            borderRadius: '4px',
+            '& .MuiOutlinedInput-root': {
+              height: '40px',
+            }
+          }} size="small">
+            <Select
               value={selectedActionType}
-              onChange={(e) => setSelectedActionType(e.target.value)}
-              style={selectStyle}
+              onChange={handleActionTypeChange}
+              displayEmpty
+              sx={{
+                color: '#fff',
+                height: '40px',
+                '.MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#888' },
+                '.MuiSvgIcon-root': { color: '#fff' }
+              }}
             >
-              <option value="">Tất cả</option>
-              <option value="CREATE">CREATE</option>
-              <option value="UPDATE">UPDATE</option>
-              <option value="DELETE">DELETE</option>
-            </select>
-          </div>
+              <MenuItem value="">Tất cả</MenuItem>
+              <MenuItem value="CREATE">Tạo mới</MenuItem>
+              <MenuItem value="UPDATE">Cập nhật</MenuItem>
+              <MenuItem value="DELETE">Xóa</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchHistory}
+            disabled={loading}
+            sx={{
+              color: '#fff',
+              borderColor: '#fff',
+              minWidth: 150,
+              height: '40px'
+            }}
+          >
+            Làm mới
+          </Button>
+        </Box>
+      </Box>
 
-          {/* Action Buttons */}
-          <div style={{ ...formFieldStyle, ...buttonGroupStyle }}>
-            <button
-              type="submit"
-              style={primaryButtonStyle}
-              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#145cb3'; e.currentTarget.style.borderColor = '#145cb3'; }}
-              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#1a73e8'; e.currentTarget.style.borderColor = '#1a73e8'; }}
-            >
-              Lọc
-            </button>
-            <button
-              type="button"
-              onClick={clearFilters}
-              style={secondaryButtonStyle}
-              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#3a3b44'; e.currentTarget.style.borderColor = '#666'; }}
-              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#2a2b34'; e.currentTarget.style.borderColor = '#555'; }}
-            >
-              Xóa lọc
-            </button>
-          </div>
-        </div>
-      </form>
-
-      {error ? (
-        <p style={{ textAlign: 'center', fontSize: '1.125rem', padding: '16px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)', backgroundColor: '#dc3545', color: '#ffffff' }}>{error}</p>
-      ) : logs.length === 0 ? (
-        <p style={{ textAlign: 'center', fontSize: '1.125rem', padding: '16px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)', backgroundColor: '#22232b', color: '#ffffff' }}>Không tìm thấy lịch sử thay đổi nào cho giáo viên.</p>
-      ) : (
-        <>
-          {/* Logs Table */}
-          <div style={tableContainerStyle}>
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th scope="col" style={{ ...thStyle, borderTopLeftRadius: '8px' }}>ID Log</th>
-                  <th scope="col" style={thStyle}>Thời gian</th>
-                  <th scope="col" style={thStyle}>ID Giáo viên</th>
-                  <th scope="col" style={thStyle}>Hành động</th>
-                  <th scope="col" style={thStyle}>Người dùng</th>
-                  <th scope="col" style={{ ...thStyle, minWidth: '300px' }}>Dữ liệu cũ</th>
-                  <th scope="col" style={{ ...thStyle, minWidth: '300px' }}>Dữ liệu mới</th>
-                  <th scope="col" style={thStyle}>IP</th>
-                  <th scope="col" style={{ ...thStyle, borderTopRightRadius: '8px', width: '180px' }}>User Agent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log, index) => (
-                  <tr key={log.id} style={{ backgroundColor: index % 2 === 0 ? '#22232b' : '#2a2b34' }}>
-                    <td style={tdStyle}>{log.id}</td>
-                    <td style={tdStyle}>{new Date(log.changed_at).toLocaleString('vi-VN')}</td>
-                    <td style={tdStyle}>{log.record_id}</td>
-                    <td style={tdStyle}>{log.action_type}</td>
-                    <td style={tdStyle}>{log.user?.name || log.user_id || 'N/A'}</td>
-                    <td style={tdStyle}>
-                      {log.old_values ? (
-                        <pre style={preStyle}>
-                          {formatJsonWithDates(log.old_values)}
-                        </pre>
-                      ) : 'N/A'}
-                    </td>
-                    <td style={tdStyle}>
-                      {log.new_values ? (
-                        <pre style={preStyle}>
-                          {formatJsonWithDates(log.new_values)}
-                        </pre>
-                      ) : 'N/A'}
-                    </td>
-                    <td style={tdStyle}>{log.ip_address || 'N/A'}</td>
-                    <td style={userAgentTdStyle}>
-                      {log.user_agent || 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div style={paginationContainerStyle}>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              style={paginationButtonStyle}
-              onMouseOver={(e) => { if (currentPage !== 1) e.currentTarget.style.backgroundColor = '#3a3b44'; }}
-              onMouseOut={(e) => { if (currentPage !== 1) e.currentTarget.style.backgroundColor = '#2a2b34'; }}
-            >
-              Trang trước
-            </button>
-            <span style={paginationSpanStyle}>Trang {currentPage} / {lastPage}</span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === lastPage}
-              style={paginationButtonStyle}
-              onMouseOver={(e) => { if (currentPage !== lastPage) e.currentTarget.style.backgroundColor = '#3a3b44'; }}
-              onMouseOut={(e) => { if (currentPage !== lastPage) e.currentTarget.style.backgroundColor = '#2a2b34'; }}
-            >
-              Trang sau
-            </button>
-          </div>
-        </>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
       )}
-    </div>
+
+      <Paper sx={{ width: '100%', overflow: 'hidden', backgroundColor: '#333645', color: '#fff' }}>
+        <TableContainer sx={{ backgroundColor: '#333645' }}>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thời gian</TableCell>
+                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>ID</TableCell>
+                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Hành động</TableCell>
+                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Người thực hiện</TableCell>
+                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Mật khẩu được tạo</TableCell>
+                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin cũ</TableCell>
+                <TableCell sx={{ backgroundColor: '#21222D', color: '#fff', fontWeight: 'bold' }}>Thông tin mới</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {history && history.length > 0 ? (
+                history.map((record) => (
+                  <TableRow
+                    key={record.id}
+                    sx={{
+                      '&:nth-of-type(odd)': { backgroundColor: '#333645' },
+                      '&:nth-of-type(even)': { backgroundColor: '#3a3d4f' },
+                      '&:hover': { backgroundColor: '#4c4f64 !important' }
+                    }}
+                  >
+                    <TableCell sx={{ color: '#fff' }}>{formatDateTime(record.changed_at)}</TableCell>
+                    <TableCell sx={{ color: '#fff' }}>{record.record_id}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getActionTypeText(record.action_type)}
+                        color={getActionTypeColor(record.action_type) as any}
+                        size="small"
+                        sx={{ color: '#fff' }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ color: '#fff' }}>
+                      {record.user ? (
+                        <Tooltip title={`${record.user.email} (${record.user.role})`}>
+                          <span>{record.user.name}</span>
+                        </Tooltip>
+                      ) : (
+                        <span style={{ color: '#999', fontStyle: 'italic' }}>Unknown User</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {record.action_type === 'CREATE' && renderPasswordField(record.new_values, record.id)}
+                    </TableCell>
+                    <TableCell>
+                      {renderJsonField(record.old_values)}
+                    </TableCell>
+                    <TableCell>
+                      {renderJsonField(record.new_values)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={9} align="center" sx={{ backgroundColor: '#333645' }}>
+                    <Typography variant="body1" sx={{ py: 4, color: 'text.secondary' }}>
+                      Không có dữ liệu lịch sử
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50]}
+          component="div"
+          count={total}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} trên ${count}`}
+          sx={{
+            color: '#fff',
+            '.MuiTablePagination-selectLabel': {
+              color: '#fff',
+            },
+            '.MuiTablePagination-displayedRows': {
+              color: '#fff',
+            },
+            '.MuiTablePagination-select': {
+              color: '#fff',
+            },
+            '.MuiSelect-icon': {
+              color: '#fff',
+            },
+            '.MuiTablePagination-actions': {
+              color: '#fff',
+              '& .MuiIconButton-root': {
+                color: '#fff',
+              }
+            },
+          }}
+        />
+      </Paper>
+    </Box>
   );
 };
 

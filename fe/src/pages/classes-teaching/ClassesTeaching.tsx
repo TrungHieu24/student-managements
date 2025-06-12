@@ -128,7 +128,8 @@ const getAuthHeaders = () => {
     const token = getAuthToken();
     return {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        "ngrok-skip-browser-warning": "true",
     };
 };
 
@@ -197,6 +198,7 @@ const ClassesTeaching: React.FC = () => {
         const fetchTeachingClasses = async () => {
             try {
                 setLoadingClasses(true);
+                setError(null); // Reset error trước khi fetch
                 const headers = getAuthHeaders();
                 const token = headers.Authorization.split(' ')[1];
 
@@ -208,20 +210,35 @@ const ClassesTeaching: React.FC = () => {
                     return;
                 }
 
-                const response = await axios.get<TeachingAssignment[]>(`${API_BASE_URL}/api/teacher/classes/teaching`, {
-                    headers: headers,
+                const response = await axios.get(`${API_BASE_URL}/api/teacher/classes/teaching`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    }
                 });
 
+                console.log('Response từ API:', response);
                 console.log('Dữ liệu lớp giảng dạy:', response.data);
 
-                setTeachingAssignments(response.data);
+                // Kiểm tra dữ liệu trả về
+                if (response.data && Array.isArray(response.data)) {
+                    setTeachingAssignments(response.data);
+                } else {
+                    console.error('Dữ liệu không đúng định dạng:', response.data);
+                    setError('Dữ liệu từ server không đúng định dạng. Vui lòng liên hệ quản trị viên.');
+                    setTeachingAssignments([]); // Set về mảng rỗng để tránh lỗi reduce
+                }
             } catch (err) {
                 console.error('Lỗi khi tải các lớp giảng dạy:', err);
+                setTeachingAssignments([]); // Set về mảng rỗng khi có lỗi
+                
                 if (axios.isAxiosError(err) && err.response) {
                     if (err.response.status === 401) {
                         setError('Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.');
                     } else {
-                        setError(`Không thể tải danh sách các lớp đang giảng dạy: ${err.response.status} - ${err.response.data.message || 'Lỗi không xác định'}`);
+                        setError(`Không thể tải danh sách các lớp đang giảng dạy: ${err.response.status} - ${err.response.data?.message || 'Lỗi không xác định'}`);
                     }
                 } else {
                     setError('Không thể tải danh sách các lớp đang giảng dạy do lỗi mạng hoặc server.');
@@ -232,7 +249,7 @@ const ClassesTeaching: React.FC = () => {
         };
 
         fetchTeachingClasses();
-    }, []);
+    }, [API_BASE_URL]);
 
     const fetchStudentsForClass = async (classId: number) => {
         if (studentsInClass[classId]) {
@@ -251,7 +268,12 @@ const ClassesTeaching: React.FC = () => {
 
             console.log(`Đang tải học sinh cho lớp ${classId}...`);
             const response = await axios.get<ClassStudentsResponse>(`${API_BASE_URL}/api/teacher/classes/${classId}/students`, {
-                headers: headers,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                }
             });
             console.log(`Dữ liệu học sinh lớp ${classId}:`, response.data);
 
@@ -290,36 +312,46 @@ const ClassesTeaching: React.FC = () => {
         }
     };
 
-    const groupedByClass = teachingAssignments.reduce((acc, assignment) => {
-        const classId = assignment.class_id;
-        if (!acc[classId]) {
-            acc[classId] = {
-                class_id: classId,
-                class_name: assignment.class_name,
-                grade: assignment.grade,
-                school_year: assignment.school_year,
-                subjects: []
-            };
+    // Sử dụng useMemo để tránh lỗi khi teachingAssignments chưa sẵn sàng
+    const groupedByClass = useMemo(() => {
+        // Kiểm tra xem teachingAssignments có phải là mảng không
+        if (!Array.isArray(teachingAssignments) || teachingAssignments.length === 0) {
+            return {};
         }
-        acc[classId].subjects.push({
-            subject_id: assignment.subject_id,
-            subject_name: assignment.subject_name,
-            semester: assignment.semester,
-        });
-        return acc;
-    }, {} as Record<number, {
-        class_id: number;
-        class_name: string;
-        grade: number;
-        school_year: string;
-        subjects: Array<{
-            subject_id: number;
-            subject_name: string;
-            semester: number;
-        }>;
-    }>);
 
-    const classesArray = Object.values(groupedByClass).sort((a, b) => a.grade - b.grade);
+        return teachingAssignments.reduce((acc, assignment) => {
+            const classId = assignment.class_id;
+            if (!acc[classId]) {
+                acc[classId] = {
+                    class_id: classId,
+                    class_name: assignment.class_name,
+                    grade: assignment.grade,
+                    school_year: assignment.school_year,
+                    subjects: []
+                };
+            }
+            acc[classId].subjects.push({
+                subject_id: assignment.subject_id,
+                subject_name: assignment.subject_name,
+                semester: assignment.semester,
+            });
+            return acc;
+        }, {} as Record<number, {
+            class_id: number;
+            class_name: string;
+            grade: number;
+            school_year: string;
+            subjects: Array<{
+                subject_id: number;
+                subject_name: string;
+                semester: number;
+            }>;
+        }>);
+    }, [teachingAssignments]);
+
+    const classesArray = useMemo(() => {
+        return Object.values(groupedByClass).sort((a, b) => a.grade - b.grade);
+    }, [groupedByClass]);
 
     const scoreTypes: ScoreType[] = useMemo(() => [
         { value: 'oral', label: 'Điểm miệng' },
@@ -341,7 +373,12 @@ const ClassesTeaching: React.FC = () => {
                 throw new Error('Không tìm thấy token xác thực.');
             }
             const response = await axios.get<Score[]>(`${API_BASE_URL}/api/scores/${studentId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                }
             });
             const scoresData = Array.isArray(response.data) ? response.data : [];
             setScores(scoresData);
@@ -373,11 +410,14 @@ const ClassesTeaching: React.FC = () => {
         const studentClassId = student.class_id;
         const availableSemesters = new Set<number>();
         
-        teachingAssignments
-            .filter(assignment => assignment.class_id === studentClassId)
-            .forEach(assignment => {
-                availableSemesters.add(assignment.semester);
-            });
+        // Kiểm tra teachingAssignments trước khi filter
+        if (Array.isArray(teachingAssignments)) {
+            teachingAssignments
+                .filter(assignment => assignment.class_id === studentClassId)
+                .forEach(assignment => {
+                    availableSemesters.add(assignment.semester);
+                });
+        }
         
         // Set initial semester to the first available one, or '1' if none available
         const initialSemester = availableSemesters.has(1) ? '1' : 
@@ -385,9 +425,12 @@ const ClassesTeaching: React.FC = () => {
         setSelectedSemester(initialSemester as '1' | '2');
         
         fetchStudentScores(student.id);
-        const currentClassSubjects = teachingAssignments
-            .filter(assignment => assignment.class_id === student.class_id)
-            .map(assignment => ({ id: assignment.subject_id, name: assignment.subject_name }));
+        
+        // Kiểm tra teachingAssignments trước khi filter
+        const currentClassSubjects = Array.isArray(teachingAssignments) ? 
+            teachingAssignments
+                .filter(assignment => assignment.class_id === student.class_id)
+                .map(assignment => ({ id: assignment.subject_id, name: assignment.subject_name })) : [];
         const uniqueSubjects = Array.from(new Map(currentClassSubjects.map(item => [item.id, item])).values());
         setSubjects(uniqueSubjects);
         setOpenScoreDialog(true);
@@ -448,7 +491,12 @@ const ClassesTeaching: React.FC = () => {
             };
 
             await axios.post(`${API_BASE_URL}/api/scores`, dataToSend, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                }
             });
             setNotification({ 
                 open: true, 
@@ -537,7 +585,12 @@ const ClassesTeaching: React.FC = () => {
                 semester: scoreToEdit.semester 
             };
             await axios.put(`${API_BASE_URL}/api/scores/${scoreToEdit.id}`, dataToSend, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                }
             });
             setNotification({ 
                 open: true, 
@@ -596,7 +649,12 @@ const ClassesTeaching: React.FC = () => {
                 return;
             }
             await axios.delete(`${API_BASE_URL}/api/scores/${scoreToDeleteId}`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                }
             });
             setNotification({ 
                 open: true, 

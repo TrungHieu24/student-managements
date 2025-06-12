@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Models\AuditLog;
 
 class UserController extends Controller
 {
@@ -44,6 +46,8 @@ class UserController extends Controller
 
             $generatedPassword = Str::random(10);
 
+            DB::beginTransaction();
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -52,13 +56,37 @@ class UserController extends Controller
                 'is_first_login' => true,
             ]);
 
+            // Create audit log entry with generated password
+            $auditLog = AuditLog::create([
+                'table_name' => 'users',
+                'record_id' => $user->id,
+                'action_type' => 'CREATE',
+                'user_id' => auth()->id(),
+                'old_values' => null,
+                'new_values' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'generated_password' => $generatedPassword,
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            DB::commit();
+
             $user->generated_password = $generatedPassword;
 
             return response()->json(['message' => 'User created successfully', 'user' => $user], 201);
         } catch (ValidationException $e) {
+            DB::rollBack();
             Log::error('Validation error creating user: ' . $e->getMessage());
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("Error creating user: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
             Log::error("Stack trace: " . $e->getTraceAsString());
             return response()->json(['message' => 'Error creating user', 'error' => $e->getMessage()], 500);
