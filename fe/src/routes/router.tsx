@@ -22,7 +22,8 @@ const AuthLayout = lazy<({ children }: PropsWithChildren) => ReactElement>(
 const Dashboard = lazy(() => import('../pages/dashboard/Dashboard'));
 const Login = lazy<() => ReactElement>(() => import( '../pages/authentication/Login'));
 const ErrorPage = lazy<() => ReactElement>(() => import('../pages/error/ErrorPage'));
-const Profile = lazy<() => ReactElement>(() => import('../pages/profile/Profile')); 
+const AdminProfile = lazy<() => ReactElement>(() => import('../pages/profile/Admin')); 
+const UserProfile = lazy<() => ReactElement>(() => import('../pages/profile/User')); 
 const Settings = lazy<() => ReactElement>(() => import('../pages/setting/SystemSettings'));
 const Subject = lazy(() => import('../pages/subject/Subject'));
 const Teacher = lazy(() => import('../pages/teacher/Teacher'));
@@ -73,7 +74,8 @@ const routes: RouteObject[] = [
         ),
         children: [
           { index: true, element: <Dashboard /> },
-          { path: 'profile', element: <Profile /> },
+          { path: 'adminprofile', element: <AdminProfile /> },
+          { path: 'userprofile', element: <UserProfile /> },
           { path: 'setting', element: <Settings /> },
           { path: 'subject', element: <Subject /> },
           { path: 'teacher', element: <Teacher /> },

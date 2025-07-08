@@ -332,7 +332,7 @@ class ClassController extends Controller
     public function showStudents($id)
     {
         try {
-            $class = ClassModel::with(['students', 'teacher'])->findOrFail($id);
+            $class = ClassModel::with(['students.user', 'teacher'])->findOrFail($id);
 
             return response()->json($class);
 

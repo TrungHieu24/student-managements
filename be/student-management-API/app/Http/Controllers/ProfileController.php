@@ -81,4 +81,27 @@ class ProfileController extends Controller
             'avatar' => asset('storage/' . $path),
         ]);
     }
+
+    public function deleteAvatar(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->avatar) {
+            // Delete the avatar file from storage
+            Storage::disk('public')->delete($user->avatar);
+            
+            // Set the avatar field to null in the database
+            $user->avatar = null;
+            $user->save();
+
+            return response()->json([
+                'message' => 'Ảnh đại diện đã được xóa thành công.',
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Không có ảnh đại diện để xóa.',
+        ], 404);
+    }
 }

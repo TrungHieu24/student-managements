@@ -52,6 +52,10 @@ interface Student {
   user_id?: number;
   created_at: string;
   updated_at: string;
+  user?: {
+    avatar_url?: string;
+    // Có thể bổ sung các trường khác nếu cần
+  };
 }
 
 // Interface cho response từ API my-class
@@ -875,8 +879,8 @@ const Dashboard: React.FC = () => {
                   <TableHead sx={{ backgroundColor: '#404155' }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold', color: '#ffffff' }}>STT</TableCell>
-
-                      <TableCell sx={{ fontWeight: 'bold', color: '#ffffff' }}>ID</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#ffffff' }}>Mã học sinh</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#ffffff' }}>Avatar</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', color: '#ffffff' }}>Họ và tên</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', color: '#ffffff' }}>Ngày sinh</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', color: '#ffffff' }}>Giới
@@ -929,6 +933,17 @@ const Dashboard: React.FC = () => {
                           <TableCell sx={{ color: '#ffffff' }}>
                             {student.student_code ||
                               `${student.id.toString()}`}
+                          </TableCell>
+                          <TableCell>
+                            <Avatar
+                              src={student.user && student.user.avatar_url ? student.user.avatar_url : undefined}
+                              alt={student.name}
+                              sx={{ width: 60, height: 60, bgcolor: '#7e57c2', color: '#fff', fontWeight: 'bold', fontSize: 24 }}
+                            >
+                              {student.name && student.name.length > 0
+                                ? student.name.trim().split(' ').slice(-1)[0].charAt(0).toUpperCase()
+                                : '?'}
+                            </Avatar>
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" alignItems="center" spacing={2}>

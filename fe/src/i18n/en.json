@@ -127,6 +127,10 @@
     "noSelect": "No selection",
     "deleteClassConfirmation": "Are you sure you want to delete class {{className}}?",
     "id": "ID",
+    "addSubject": "Add Subject",
+    "teacher_id": "Teacher Id",
+    "student_id": "Student Id",
+    "subject_id": "Subject Id",
     "user": "User",
     "ip": "IP",
     "device": "Device",
@@ -234,9 +238,6 @@
         "school_year_required": "School year is required",
         "school_year_format": "Invalid school year format",
         "semester_required": "Semester is required"
-    },
-    "teacher_id": "Teacher Id",
-    "student_id": "Student Id",
-    "subject_id": "Subject Id"
+    }
 }
   

@@ -127,6 +127,10 @@
     "noSelect": "Không chọn",
     "deleteClassConfirmation": "Bạn có chắc chắn muốn xóa lớp {{className}}?",
     "id": "ID",
+    "addSubject": "Thêm môn học",
+    "teacher_id": "Mã giáo viên",
+    "student_id": "Mã học sinh",
+    "subject_id": "Mã môn học",
     "user": "Người dùng",
     "ip": "IP",
     "device": "Thiết bị",
@@ -234,10 +238,6 @@
         "school_year_required": "Chưa nhập năm học",
         "school_year_format": "Định dạng năm học không hợp lệ",
         "semester_required": "Chưa chọn học kỳ"
-    },
-    "addSubject": "Thêm môn học",
-    "teacher_id": "Mã giáo viên",
-    "student_id": "Mã học sinh",
-    "subject_id": "Mã môn học"
+    }
 }
   
