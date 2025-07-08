@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 // Material UI Components
 import {
@@ -31,7 +32,6 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { useTranslation } from 'react-i18next';
 
 interface Subject {
   id: number;
@@ -39,7 +39,7 @@ interface Subject {
 }
 
 const SubjectManagement: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -314,7 +314,7 @@ const SubjectManagement: React.FC = () => {
                 {subjects.map((subject, index) => (
                   <TableRow key={subject.id}>
                     <TableCell>{subject.id}</TableCell>
-                    <TableCell>{t(`subjectName.${subject.name}`)}</TableCell>
+                    <TableCell>{i18n.exists(`subjectName.${subject.name}`) ? t(`subjectName.${subject.name}`) : subject.name}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1}>
                         <Tooltip title={t('edit')}>

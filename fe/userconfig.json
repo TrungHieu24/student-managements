@@ -44,8 +44,8 @@
     },
     {
       "id": 7,
-      "path": "/profile",
-      "title": "profile",
+      "path": "/adminprofile",
+      "title": "adminprofile",
       "icon": "clarity:user-line",
       "active": true
     },
@@ -159,8 +159,15 @@
       "icon": "mingcute:home-1-fill",
       "active": true
     },
-    {
+        {
       "id": 2,
+      "path": "/userprofile",
+      "title": "userprofile",
+      "icon": "clarity:user-line",
+      "active": true
+    },
+    {
+      "id": 3,
       "path": "/authentication/login",
       "title": "login",
       "icon": "tabler:login",

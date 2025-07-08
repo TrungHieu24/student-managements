@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { PhotoCamera } from '@mui/icons-material';
+import { FileUpload as FileUploadIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
 interface User {
@@ -24,7 +24,7 @@ interface User {
   avatar?: string;
 }
 
-const Profile = (): ReactElement => {
+const AdminProfile = (): ReactElement => {
   const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
   const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
@@ -150,14 +150,17 @@ const Profile = (): ReactElement => {
                 component="span"
                 sx={{
                   position: 'absolute',
-                  bottom: 0,
-                  right: 'calc(50% - 50px)',
-                  backgroundColor: 'white',
-                  boxShadow: 2,
-                  '&:hover': { backgroundColor: '#f0f0f0' },
+                  bottom: 5,
+                  right: 'calc(50% - 65px)',
+                  backgroundColor: 'primary.dark',
+                  color: 'white',
+                  boxShadow: 3,
+                  '&:hover': { backgroundColor: 'primary.main' },
+                  width: 36,
+                  height: 36,
                 }}
               >
-                <PhotoCamera fontSize="small" />
+                <FileUploadIcon fontSize="medium" />
               </IconButton>
             </label>
           </>
@@ -233,4 +236,4 @@ const Profile = (): ReactElement => {
   );
 };
 
-export default Profile;
+export default AdminProfile;
